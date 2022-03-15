@@ -1,7 +1,9 @@
 {
-  "name": "tailwind-nextjs-starter-blog",
-  "version": "1.5.2",
-  "private": true,
+  "name": "thinkjrs.dev",
+  "version": "0.1.0",
+  "private": false,
+  "repository": "https://github.com/thinkjrs/thinkjrs.dev",
+  "description": "The main website for stuff @thinkjrs makes, thinks about, and supports.",
   "scripts": {
     "start": "cross-env SOCKET=true node ./scripts/next-remote-watch.js ./data",
     "dev": "next dev",
