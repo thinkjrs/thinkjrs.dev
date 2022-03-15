@@ -7,8 +7,8 @@ const siteMetadata = {
   theme: 'system', // system, dark or light
   siteUrl: 'https://thinkjrs.dev',
   siteRepo: 'https://github.com/thinkjrs/thinkjrs.dev',
-  siteLogo: '/static/images/logo.png',
-  image: '/static/images/avatar.png',
+  siteLogo: '/static/images/avatar.jpg',
+  image: '/static/images/avatar.jpg',
   socialBanner: '/static/images/twitter-card.png',
   email: 'jason@thinkjrs.dev',
   github: 'https://github.com/thinkjrs',
