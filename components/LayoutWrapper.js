@@ -11,15 +11,15 @@ const LayoutWrapper = ({ children }) => {
   return (
     <SectionContainer>
       <div className="flex h-screen flex-col justify-between">
-        <header className="flex items-center justify-between py-10">
+        <header className="flex items-center justify-between pb-5 pt-2">
           <div>
             <Link href="/" aria-label={siteMetadata.headerTitle}>
               <div className="flex items-center justify-between">
-                <div className="mr-3">
+                <div className="mr-3 fill-gray-900 dark:fill-gray-300">
                   <Logo />
                 </div>
                 {typeof siteMetadata.headerTitle === 'string' ? (
-                  <div className="hidden h-6 text-2xl font-semibold sm:block">
+                  <div className="hidden h-8 text-2xl font-semibold dark:text-gray-500 sm:block">
                     {siteMetadata.headerTitle}
                   </div>
                 ) : (
@@ -28,7 +28,7 @@ const LayoutWrapper = ({ children }) => {
               </div>
             </Link>
           </div>
-          <div className="flex items-center text-base leading-5">
+          <div className="flex items-center text-base">
             <div className="hidden sm:block">
               {headerNavLinks.map((link) => (
                 <Link
