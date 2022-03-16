@@ -5,7 +5,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { getAllFilesFrontMatter } from '@/lib/mdx'
 import formatDate from '@/lib/utils/formatDate'
 
-import NewsletterForm from '@/components/NewsletterForm'
+import { BlogNewsletterForm } from '@/components/NewsletterForm'
 
 const MAX_DISPLAY = 5
 
@@ -92,8 +92,8 @@ export default function Home({ posts }) {
         </div>
       )}
       {siteMetadata.newsletter.provider !== '' && (
-        <div className="flex items-center justify-center pt-4">
-          <NewsletterForm />
+        <div id="newsletter-form" className="py-12">
+          <BlogNewsletterForm />
         </div>
       )}
     </>

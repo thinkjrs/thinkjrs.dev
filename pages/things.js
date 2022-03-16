@@ -1,6 +1,7 @@
 import siteMetadata from '@/data/siteMetadata'
 import projectsData from '@/data/projectsData'
 import Card from '@/components/Card'
+import { BlogNewsletterForm } from '@/components/NewsletterForm'
 import { PageSEO } from '@/components/SEO'
 function ThinkjrsLink({ href, children }) {
   return (
@@ -50,6 +51,9 @@ export default function Things() {
                 href={d.href}
               />
             ))}
+          </div>
+          <div id="newsletter-form" className="py-12">
+            <BlogNewsletterForm />
           </div>
         </div>
       </div>
