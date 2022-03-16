@@ -22,6 +22,29 @@ class MyDocument extends Document {
           <meta name="msapplication-TileColor" content="#000000" />
           <meta name="theme-color" content="#000000" />
           <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
+          <link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href="/static/favicons/apple-touch-icon.png"
+          />
+          <link
+            rel="icon"
+            type="image/png"
+            sizes="32x32"
+            href="/static/favicons/favicon-32x32.png"
+          />
+          <link
+            rel="icon"
+            type="image/png"
+            sizes="16x16"
+            href="/static/favicons/favicon-16x16.png"
+          />
+          <link rel="manifest" href="/static/favicons/site.webmanifest" />
+          <link rel="mask-icon" href="/static/favicons/safari-pinned-tab.svg" color="#603cba" />
+          <link rel="shortcut icon" href="/static/favicons/favicon.ico" />
+          <meta name="msapplication-TileColor" content="#603cba" />
+          <meta name="msapplication-config" content="/static/favicons/browserconfig.xml" />
+          <meta name="theme-color" content="#ffffff" />
         </Head>
         <body className="bg-white text-black antialiased dark:bg-gray-900 dark:text-white">
           <Main />
