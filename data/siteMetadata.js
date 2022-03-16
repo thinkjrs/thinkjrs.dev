@@ -1,8 +1,8 @@
 const siteMetadata = {
-  title: 'thinkjrs.dev',
+  title: 'The most awesome site on the web',
   author: 'Jason R. Stevens, CFA',
   headerTitle: 'thinkjrs.dev',
-  description: "A discretized collection thinkjrs's musings.",
+  description: 'A discretized collection of musings from thinkjrs.',
   language: 'en-us',
   theme: 'system', // system, dark or light
   siteUrl: 'https://thinkjrs.dev',
