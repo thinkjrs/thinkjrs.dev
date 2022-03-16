@@ -4,6 +4,7 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import { getAllTags } from '@/lib/tags'
 import kebabCase from '@/lib/utils/kebabCase'
+import { BlogNewsletterForm } from '@/components/NewsletterForm'
 
 export async function getStaticProps() {
   const tags = await getAllTags('blog')
@@ -38,6 +39,9 @@ export default function Tags({ tags }) {
             )
           })}
         </div>
+      </div>
+      <div id="newsletter-form" className="py-12">
+        <BlogNewsletterForm />
       </div>
     </>
   )
