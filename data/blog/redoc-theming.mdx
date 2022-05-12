@@ -1,18 +1,125 @@
 ---
-title: Theming Redoc CE
+title: Theming Redoc
 date: '2022-05-12'
-tags: ['swagger', 'redoc', 'javascript', 'documentation', 'frontend']
-draft: true
+tags: ['React', 'Redoc', 'Openapi', 'Documentation', 'API']
+draft: false
 summary: Did you know that you can theme your Redoc component and app renders? I'll show you how in this article.
 images: ['/static/images/redoc-theming.jpg']
 authors: ['default']
 layout: PostLayout
 ---
 
-<Image
-  className="rounded-md"
-  src="/static/images/redoc-theming.jpg"
-  alt="The national flag of the United States of Mexico Photo by Jorge Aguilar on Unsplash"
-  height={1000}
-  width={2000}
-/>
+<div className="rounded-md shadow-lg">
+  <Image
+    className="rounded-md"
+    src="/static/images/redoc-theming.jpg"
+    alt="The Promo API documentation themed with redoc for https://tincre.dev"
+    height={667}
+    width={1082}
+  />
+</div>
+Wait, you don't know what redoc is? What APIs are? You don't use Swagger? This article might not be for
+you.{' '}
+
+**I will avoid defining those things so that I have more material to blabber about later. 😉**
+
+But if you do use OpenAPI (Swagger) definitions for your APIs, you should be using
+redoc to publish and beautify your definitions. And even better, once you hit scale,
+you can leverage the company behind the redoc project - Redocly - to manage that
+scale.
+
+<div className="px-2 text-sm text-gray-600">
+  {`Of course I have literally nothing to do with Redocly, nor do I even know
+  anyone who works there (at least of whom I'm aware). I just genuinely enjoy
+  great products and the businesses that make them.`}
+  <span className="font-bold">{` Big surprise, considering we (try)
+  to do the same thing at `}</span>
+  <a href="https://tincre.com" target="_blank" noreferrer>
+    Tincre!
+  </a>
+</div>
+
+## 📚 What is redoc?
+
+### What we need it for
+
+For Tincre's developer platform, [Tincre.dev](https://tincre.dev), we need to publish various API documentation so that other developers can best understand how to use
+our products and services. Believe it or not, this is no easy task.
+
+For one, _just look at how much detail is in a single [API schema for our Promo API](https://tincre.dev/docs/reference)!_ In case you're wondering what that API does _IRL_, head over to one of our product subsidiaries, [b00st.com](https://b00st.com), login and
+press the "Real Easy Ads" button. The Promo API is the magic behind the scenes, running may of the largest musicians' and bands' marketing 🤯
+
+### The redoc React component
+
+#### Getting setup
+
+#### Theming it purdy
+
+## 📑 Why Tincre needs API docs
+
+Phil and I built this business to scale, at extremely low costs, with pure blood,
+sweat and tears.
+
+That scale starts _now_. Actually it started many months ago and we've been
+maintaining a 5-15% top-line growth rate monthly. Oh, and there's been no sacrificing
+earnings - profitabilty has also expanded while
+growing that top line. Cash flows? _Fuggedaboutit!_
+
+### Imminent expansion - tincre.dev
+
+Specifically, we're working with some amazing partner firms you'll see announced over
+the next several months to plug in our new [Promo](https://tincre.dev/promo) product.
+
+Then, we'll begin marketing our fully-fledged developer platform to well, developers. But developers are, by far, the hardest and most expensive group of customers/clients you can go after. It's the pinnacle of business in 2022 (and has been for quite a while).
+
+But don't take my word for it...Amazon, for instance, generated **more than half its 2021 profits** via
+its AWS - Amazon Web Services - business, which sells specifically to developers and
+developer-enabled organizations.
+
+Businesses such as Twilio, Facebook (Meta), Mailchimp, and Ebay, to name a few, either sell developers services directly or rely
+upon developer-built consumer-facing technologies for _literally all of their cash flows_.
+
+### Communication, service, and support
+
+But as a small operation which has rejected VC funding up to this point, we have to
+attack our market from a different, vastly more efficient angle.
+
+That's where our API (and other) docs come into play. High-quality engineering communication
+with our developer client base is paramount to successful products and services.
+
+#### Keeping ourselves honest
+
+By publishing code-side documentation that's generated from our actual APIs we are
+able to communicate with our clients in ways the old-school business world cannot begin
+to fathom.
+
+For example, imagine that the second your favorite restaurant changed the recipe to a menu
+item that you were:
+
+1. informed of the change,
+2. were told exactly what that would mean for other dishes on the menu, and
+3. were able to make an informed decision _before_ ordering that dish, surprised by the abrupt difference.
+
+#### New capabilities for client developers
+
+Quality technical documentation also communicates _how_ to utilize something. You'll notice that each of our API endpoints in the redoc rendering has a `Response` demonstration.
+
+Hit the API as one of our client developers and know _exactly what you're going to get and how you're going to get it_.
+
+#### Business efficiency: a first line of defense
+
+Lastly, quality docs are an efficiency tool for a business like ours. They're the first
+order of assistance we can provide, helping to clarify usage, expectations, limitations,
+and most importantly, possibilities.
+
+## 🥃 Last call
+
+I hope you enjoyed or found this piece useful. If you know of anyone that should
+be plugging in the Promo product I mentioned, do me a favor and connect us w/a simple
+email to [hi@tincre.dev](mailto:hi@tincre.dev).
+
+_Especially if that someone's you!_
+
+[`l8r` 🐊 - J](mailto:jason@tincre.com)
+
+<BlogNewsletterForm />
