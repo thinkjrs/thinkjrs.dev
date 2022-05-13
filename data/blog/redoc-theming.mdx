@@ -24,8 +24,8 @@ you.{' '}
 **I will avoid defining those things so that I have more material to blabber about later. 😉**
 
 But if you do use OpenAPI (Swagger) definitions for your APIs, you should be using
-redoc to publish and beautify your definitions. And even better, once you hit scale,
-you can leverage the company behind the redoc project - Redocly - to manage that
+[redoc](https://github.com/redocly/redoc) to publish and beautify your definitions. And even better, once you hit scale,
+you can leverage the company behind the redoc project - [Redocly](https://redocly.com) - to manage that
 scale.
 
 <div className="px-2 text-sm text-gray-600">
@@ -41,13 +41,28 @@ scale.
 
 ## 📚 What is redoc?
 
-### What we need it for
+As stated in the project's [`README.md`](https://github.com/Redocly/redoc/blob/master/README.md#about-redoc):
+
+> Redoc is an open-source tool for generating documentation from OpenAPI (fka Swagger) definitions.
+>
+> By default Redoc offers a three-panel, responsive layout:
+>
+> - The left panel contains a search bar and navigation menu.
+> - The central panel contains the documentation.
+> - The right panel contains request and response examples.
+
+Basically, redoc takes an OpenAPI (Swagger) schema and renders it. In a real nice, purdy way that happens to be quite flexible.
+
+### What's so special about it?
 
 For Tincre's developer platform, [Tincre.dev](https://tincre.dev), we need to publish various API documentation so that other developers can best understand how to use
 our products and services. Believe it or not, this is no easy task.
 
 For one, _just look at how much detail is in a single [API schema for our Promo API](https://tincre.dev/docs/reference)!_ In case you're wondering what that API does _IRL_, head over to one of our product subsidiaries, [b00st.com](https://b00st.com), login and
-press the "Real Easy Ads" button. The Promo API is the magic behind the scenes, running may of the largest musicians' and bands' marketing 🤯
+press the "Real Easy Ads" button. The Promo API is the magic behind the scenes, running may of the largest musicians' and bands' marketing. 🤯
+
+Redoc let's us render all this detail in a useful, dynamic fashion for for our users. And its design allows us to keep all the magic between the sheets - i.e. within our
+build, testing, and deployment schemas.
 
 ### The redoc React component
 
@@ -65,7 +80,7 @@ yarn add -D mbox styled-components core-js redoc
 
 **ℹ️ `npm` is also fine!**
 
-Then, at the top of the file in which you'd like to render your openapi schema:
+Then, at the top of the file in which you'd like to declare your openapi schema component:
 
 ```jsx
 import { RedocStandalone } from 'redoc'
@@ -168,7 +183,7 @@ sweat and tears.
 
 That scale starts _now_. Actually it started many months ago and we've been
 maintaining a 5-15% top-line growth rate monthly. Oh, and there's been no sacrificing
-earnings - profitabilty has also expanded while
+earnings - profitability has also expanded while
 growing that top line. Cash flows? _Fuggedaboutit!_
 
 ### Imminent expansion - tincre.dev
