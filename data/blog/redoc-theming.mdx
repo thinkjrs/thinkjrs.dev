@@ -51,9 +51,115 @@ press the "Real Easy Ads" button. The Promo API is the magic behind the scenes, 
 
 ### The redoc React component
 
+We load our `openapi.json` schema from our own, local directory. In fact, if you go to https://tincre.dev/openapi.json you can load our Promo API schema right in your browser!
+
+To get the job done we use the [Redoc React component](https://redocly.com/docs/redoc/deployment/react/). It's extremely easy to use and requires just a few peer dependencies.
+
 #### Getting setup
 
+If you use a React-framework such as [Next.js](https://nextjs.org) you should do the following:
+
+```
+yarn add -D mbox styled-components core-js redoc
+```
+
+**ℹ️ `npm` is also fine!**
+
+Then, at the top of the file in which you'd like to render your openapi schema:
+
+```jsx
+import { RedocStandalone } from 'redoc'
+```
+
+Use it by filling out the `spec` prop within the component with a string (that's what we do) or a JavaScript object.
+
+For example, using a string:
+
+```jsx
+<RedocStandalone specUrl="/openapi.json" />
+```
+
+That's it!
+
 #### Theming it purdy
+
+The best part about [redoc](https://github.com/Redocly/redoc) is that it
+takes _options_. Yep, those kind of options, the ones that let you customize how things
+look, feel, and behave.
+
+Let's dig into some of the options you can use, leveraging Redocly's examples and slight modifications we use for tincre.dev:
+
+```jsx
+<RedocStandalone
+  specUrl="/openapi.json"
+  options={{
+    defaultSampleLanguage: 'JavaScript',
+    ctrlFHijack: false,
+    scrollYOffset: 80,
+    theme: {
+      codeBlock: {
+        borderRadius: '8',
+      },
+      typography: {
+        fontSize: '16px',
+        fontFamily: 'Roboto Mono, Roboto, sans-serif',
+        optimizeSpeed: true,
+        smoothing: 'antialiased',
+        headings: {
+          fontWeight: 'bold',
+          lineHeight: '2em',
+        },
+        code: {
+          fontWeight: '600',
+          color: 'rgba(92, 62, 189, 1)',
+          wrap: true,
+        },
+        links: {
+          color: 'rgba(246, 20, 63, 1)',
+          visited: 'rgba(246, 20, 63, 1)',
+          hover: '#fa768f',
+        },
+      },
+      sidebar: {
+        width: '300px',
+        textColor: '#000000',
+        backgroundColor: '#ffffff',
+      },
+      rightPanel: {
+        backgroundColor: 'rgba(55, 53, 71, 1)',
+        textColor: '#ffffff',
+      },
+    },
+    colors: {
+      primary: {
+        main: 'rgba(246, 20, 63, 1)',
+        light: 'rgba(246, 20, 63, 0.42)',
+      },
+      success: {
+        main: 'rgba(28, 184, 65, 1)',
+        light: '#81ec9a',
+        dark: '#083312',
+        contrastText: '#000',
+      },
+      text: {
+        primary: 'rgba(0, 0, 0, 1)',
+        secondary: '#4d4d4d',
+      },
+      http: {
+        get: 'rgba(0, 200, 219, 1)',
+        post: 'rgba(28, 184, 65, 1)',
+        put: 'rgba(255, 187, 0, 1)',
+        delete: 'rgba(254, 39, 35, 1)',
+      },
+    },
+  }}
+/>
+```
+
+The schema is fairly straightforward but only some of the options are available for the
+community edition (OSS/free).
+
+Check out the [theming docs](https://redocly.com/docs/api-reference-docs/configuration/theming/) for yourself.
 
 ## 📑 Why Tincre needs API docs
 
