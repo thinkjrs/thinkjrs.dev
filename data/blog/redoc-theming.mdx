@@ -1,0 +1,246 @@
+---
+title: Theming Redoc
+date: '2022-05-12'
+tags: ['React', 'Redoc', 'Openapi', 'Documentation', 'API']
+draft: false
+summary: Did you know that you can theme your Redoc component and app renders? I'll show you how in this article.
+images: ['/static/images/redoc-theming.jpg']
+authors: ['default']
+layout: PostLayout
+---
+
+<div className="rounded-md shadow-lg">
+  <Image
+    className="rounded-md"
+    src="/static/images/redoc-theming.jpg"
+    alt="The Promo API documentation themed with redoc for https://tincre.dev"
+    height={667}
+    width={1082}
+  />
+</div>
+Wait, you don't know what redoc is? What APIs are? You don't use Swagger? This article might not be for
+you.{' '}
+
+**I will avoid defining those things so that I have more material to blabber about later. 😉**
+
+But if you do use OpenAPI (Swagger) definitions for your APIs, you should be using
+[redoc](https://github.com/redocly/redoc) to publish and beautify your definitions. And even better, once you hit scale,
+you can leverage the company behind the redoc project - [Redocly](https://redocly.com) - to manage that
+scale.
+
+<div className="px-2 text-sm text-gray-600">
+  {`Of course I have literally nothing to do with Redocly, nor do I even know
+  anyone who works there (at least of whom I'm aware). I just genuinely enjoy
+  great products and the businesses that make them.`}
+  <span className="font-bold">{` Big surprise, considering we (try)
+  to do the same thing at `}</span>
+  <a href="https://tincre.com" target="_blank" noreferrer>
+    Tincre!
+  </a>
+</div>
+
+## 📚 What is redoc?
+
+As stated in the project's [`README.md`](https://github.com/Redocly/redoc/blob/master/README.md#about-redoc):
+
+> Redoc is an open-source tool for generating documentation from OpenAPI (fka Swagger) definitions.
+>
+> By default Redoc offers a three-panel, responsive layout:
+>
+> - The left panel contains a search bar and navigation menu.
+> - The central panel contains the documentation.
+> - The right panel contains request and response examples.
+
+Basically, redoc takes an OpenAPI (Swagger) schema and renders it. In a real nice, purdy way that happens to be quite flexible.
+
+### What's so special about it?
+
+For Tincre's developer platform, [Tincre.dev](https://tincre.dev), we need to publish various API documentation so that other developers can best understand how to use
+our products and services. Believe it or not, this is no easy task.
+
+For one, _just look at how much detail is in a single [API schema for our Promo API](https://tincre.dev/docs/reference)!_ In case you're wondering what that API does _IRL_, head over to one of our product subsidiaries, [b00st.com](https://b00st.com), login and
+press the "Real Easy Ads" button. The Promo API is the magic behind the scenes, running may of the largest musicians' and bands' marketing. 🤯
+
+Redoc let's us render all this detail in a useful, dynamic fashion for for our users. And its design allows us to keep all the magic between the sheets - i.e. within our
+build, testing, and deployment schemas.
+
+### The redoc React component
+
+We load our `openapi.json` schema from our own, local directory. In fact, if you go to https://tincre.dev/openapi.json you can load our Promo API schema right in your browser!
+
+To get the job done we use the [Redoc React component](https://redocly.com/docs/redoc/deployment/react/). It's extremely easy to use and requires just a few peer dependencies.
+
+#### Getting setup
+
+If you use a React-framework such as [Next.js](https://nextjs.org) you should do the following:
+
+```
+yarn add -D mbox styled-components core-js redoc
+```
+
+**ℹ️ `npm` is also fine!**
+
+Then, at the top of the file in which you'd like to declare your openapi schema component:
+
+```jsx
+import { RedocStandalone } from 'redoc'
+```
+
+Use it by filling out the `spec` prop within the component with a string (that's what we do) or a JavaScript object.
+
+For example, using a string:
+
+```jsx
+<RedocStandalone specUrl="/openapi.json" />
+```
+
+That's it!
+
+#### Theming it purdy
+
+The best part about [redoc](https://github.com/Redocly/redoc) is that it
+takes _options_. Yep, those kind of options, the ones that let you customize how things
+look, feel, and behave.
+
+Let's dig into some of the options you can use, leveraging Redocly's examples and slight modifications we use for tincre.dev:
+
+```jsx
+<RedocStandalone
+  specUrl="/openapi.json"
+  options={{
+    defaultSampleLanguage: 'JavaScript',
+    ctrlFHijack: false,
+    scrollYOffset: 80,
+    theme: {
+      codeBlock: {
+        borderRadius: '8',
+      },
+      typography: {
+        fontSize: '16px',
+        fontFamily: 'Roboto Mono, Roboto, sans-serif',
+        optimizeSpeed: true,
+        smoothing: 'antialiased',
+        headings: {
+          fontWeight: 'bold',
+          lineHeight: '2em',
+        },
+        code: {
+          fontWeight: '600',
+          color: 'rgba(92, 62, 189, 1)',
+          wrap: true,
+        },
+        links: {
+          color: 'rgba(246, 20, 63, 1)',
+          visited: 'rgba(246, 20, 63, 1)',
+          hover: '#fa768f',
+        },
+      },
+      sidebar: {
+        width: '300px',
+        textColor: '#000000',
+        backgroundColor: '#ffffff',
+      },
+      rightPanel: {
+        backgroundColor: 'rgba(55, 53, 71, 1)',
+        textColor: '#ffffff',
+      },
+    },
+    colors: {
+      primary: {
+        main: 'rgba(246, 20, 63, 1)',
+        light: 'rgba(246, 20, 63, 0.42)',
+      },
+      success: {
+        main: 'rgba(28, 184, 65, 1)',
+        light: '#81ec9a',
+        dark: '#083312',
+        contrastText: '#000',
+      },
+      text: {
+        primary: 'rgba(0, 0, 0, 1)',
+        secondary: '#4d4d4d',
+      },
+      http: {
+        get: 'rgba(0, 200, 219, 1)',
+        post: 'rgba(28, 184, 65, 1)',
+        put: 'rgba(255, 187, 0, 1)',
+        delete: 'rgba(254, 39, 35, 1)',
+      },
+    },
+  }}
+/>
+```
+
+The schema is fairly straightforward but only some of the options are available for the
+community edition (OSS/free).
+
+Check out the [theming docs](https://redocly.com/docs/api-reference-docs/configuration/theming/) for yourself.
+
+## 📑 Why Tincre needs API docs
+
+[Phil](https://twitter.com/philipmuh) and I built this business to scale, at extremely low costs, with pure blood,
+sweat and tears.
+
+That scale starts _now_. Actually it started many months ago and we've been
+maintaining a 5-15% top-line growth rate monthly. Oh, and there's been no sacrificing
+earnings - profitability has also expanded while
+growing that top line. Cash flows? _Fuggedaboutit!_
+
+### Imminent expansion - tincre.dev
+
+Specifically, we're working with some amazing partner firms you'll see announced over
+the next several months to plug in our new [Promo](https://tincre.dev/promo) product.
+
+Then, we'll begin marketing our fully-fledged developer platform to well, developers. But developers are, by far, the hardest and most expensive group of customers/clients you can go after. It's the pinnacle of business in 2022 (and has been for quite a while).
+
+But don't take my word for it...Amazon, for instance, generated **more than half its 2021 profits** via
+its AWS - Amazon Web Services - business, which sells specifically to developers and
+developer-enabled organizations.
+
+Businesses such as Twilio, Facebook (Meta), Mailchimp, and Ebay, to name a few, either sell developers services directly or rely
+upon developer-built consumer-facing technologies for _literally all of their cash flows_.
+
+### Communication, service, and support
+
+But as a small operation which has rejected VC funding up to this point, we have to
+attack our market from a different, vastly more efficient angle.
+
+That's where our API (and other) docs come into play. High-quality engineering communication
+with our developer client base is paramount to successful products and services.
+
+#### Keeping ourselves honest
+
+By publishing code-side documentation that's generated from our actual APIs we are
+able to communicate with our clients in ways the old-school business world cannot begin
+to fathom.
+
+For example, imagine that the second your favorite restaurant changed the recipe to a menu
+item that you were:
+
+1. informed of the change,
+2. were told exactly what that would mean for other dishes on the menu, and
+3. were able to make an informed decision _before_ ordering that dish, surprised by the abrupt difference.
+
+#### New capabilities for client developers
+
+Quality technical documentation also communicates _how_ to utilize something. You'll notice that each of our API endpoints in the redoc rendering has a `Response` demonstration.
+
+Hit the API as one of our client developers and know _exactly what you're going to get and how you're going to get it_.
+
+#### Business efficiency: a first line of defense
+
+Lastly, quality docs are an efficiency tool for a business like ours. They're the first
+order of assistance we can provide, helping to clarify usage, expectations, limitations,
+and most importantly, possibilities.
+
+## 🥃 Last call
+
+I hope you enjoyed or found this piece useful. If you know of anyone that should
+be plugging in the Promo product I mentioned, do me a favor and connect us w/a simple
+email to [hi@tincre.dev](mailto:hi@tincre.dev).
+
+_Especially if that someone's you!_
+
+[`l8r` 🐊 - J](mailto:jason@tincre.com)
+
+<BlogNewsletterForm />
