@@ -1,0 +1,219 @@
+---
+title: Making Python Classes JSON Serializable
+date: '2022-05-27'
+tags: ['Python', 'JSON', 'OOP', 'Iterators', 'Dunder Methods']
+draft: false
+summary: Do you send data from Python to a web service? I bet you did not know your classes could be JSON serializable. Herein I'll show you how.
+images: ['/static/images/redoc-theming.jpg']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/making-python-classes-json-serializable.jpg"
+  alt="A bright green Python snake on a dark background to symbolically reference the Python programming language via python.org"
+  height={800}
+  width={1200}
+/>
+> Photo by [David Clode](https://tracts4free.wordpress.com/) on Unsplash and text adapted from [my stack**overflow**
+answer](https://stackoverflow.com/a/70972852).
+
+So let’s dive into a common problem I’m sure you’ve experienced. Let’s say you’re mucking around building something for the web and are writing it in Python. You want to return some data and like normal you:
+
+```python
+import json
+
+class SomeDataStructure:
+    """A bullshit data structure for example's sake."""
+    def __init__(
+        self,
+    ):
+        self.shoe_size_meters = .25 # Shaq, watch out!
+```
+
+Now in your favorite interpreter:
+
+```python
+>>> some_data = SomeDataStructure()
+>>> my_data = {'first': some_data,}
+
+>>> my_data_serialized = json.dumps(my_data)
+```
+
+If you’ve done this kind of thing before you’re currently panicking with many memories of receiving the dreaded
+
+```python
+TypeError: Object of type SomeDataStructure is not JSON serializable
+```
+
+## Let’s make it JSON serializable!
+
+You have two choices. Use the underlying _dunder_ method `.__dict__` that stores your initialized data and class metadata.
+
+For example:
+
+```python
+my_data_serialized = json.dumps(my_data.__dict__) #voila!
+```
+
+Okay, so in our contrived example, that works…but there’s a code smell here: _dunder_ methods are supposed to be for system names and, though everything in Python is public, _these methods aren’t to be used without protection_.
+
+- 📔 See the docs on the topic: [https://docs.python.org/3/reference/lexical_analysis.html?highlight=dunder](https://docs.python.org/3/reference/lexical_analysis.html?highlight=dunder) and [https://docs.python.org/3/reference/datamodel.html#specialnames](https://docs.python.org/3/reference/datamodel.html#specialnames)
+
+In reality, where can using `.__dict__` go wrong? Easy. Let’s just default initialize something in our `SomeDataStructure` class that we know isn’t JSON serializable. Say we wrote it like this:
+
+```python
+from datetime import datetime, timezone
+
+class SomeDataStructure:
+    """A bullshit data structure for example's sake."""
+
+    def __init__(
+        self,
+    ):
+        self.shoe_size_meters = 0.25  # Shaq, watch out!
+        self.initialization_dt = datetime.now(timezone.utc)
+
+```
+
+Serialize that via `json.dumps`, I dare you!
+
+We yearn for yet another, better way.
+
+## Making your class serializable
+
+The skinny: we need to write some _dunder_ methods, namely `__iter__`, `__str__` and `__repr__`. Lastly, we’ll need to extend the default JSON encoder provided/used by Python’s `json` standard library built-in to support arbitrary iterators.
+
+### What’s all this do?
+
+On a high level, the `__iter__` method handles _what_ to do when encoding, the `__str__` method _how_ to do it, and the `__repr__` method to make things consistent and Pythonic.
+
+> 🌶 In my opinion one should not implement a `__str__` without a `__repr__` method to properly adhere to the squishy, moving target that is _Pythonic code._
+
+#### `__iter__`
+
+Our `__iter__` method tells others over what and exactly how to iterate through the class attributes, specifically only those that we specify.
+
+```python
+# continuing our SomeDataStructure class implementation
+...
+def __iter__(
+    self,
+):
+    """
+    Return a generator of the data initialized in the self.__init__
+    func.
+    """
+    yield {
+        "shoe_size_meters": self.shoe_size_meters,
+        "initialization_dt": self.initialization_dt.strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        ),
+    }
+```
+
+#### `__str__`
+
+The `__str__` method will be called any time you use it as an argument to `print(...)` or `format(...)`, printing the string produced by the implemented `__str__` function. In particular, this string can be anything you wish it to be, such as JSON, YAML, or any other string representation.
+
+```python
+# continuing our SomeDataStructure class implementation
+...
+def __str__(
+    self,
+):
+    return json.dumps(
+        self,
+        cls=SomeDataStructureEncoder, # implementation below
+    )
+```
+
+#### `__repr__`
+
+The `__repr__` method is called any time the object is called by the built-in [`repr()`](https://docs.python.org/3/library/functions.html#repr) function to “return a string containing a printable representation of an object.”
+
+For now we can simply return the JSON string output by our newly minted `__str__` method.
+
+```python
+# continuing our SomeDataStructure class implementation
+...
+def __repr__(
+    self,
+):
+    return self.__str__()
+```
+
+#### `<MyCustomEncoder>Encoder` for `json.dumps`
+
+Lastly, the call to `json.dumps(..., cls=CustomEncoder)` can take a custom encoder class that allows for encoding arbitrary iterables.
+
+> 🌶 I suggest you always name your encoder classes `<MyClassName>Encoder` _and_ keep that encoder next to the class implementation; this tends to scale well with large, distributed microstructure architectures.
+
+In fact, it’s made for that! Just write yourself a `default` method inside a class that inherits from `json.JSONEncoder`. [From the docs](https://docs.python.org/3/library/json.html#json.JSONEncoder.default):
+
+```python
+# some_data_structure.py
+import json
+from datetime import datetime, timezone
+
+
+class SomeDataStructureEncoder(json.JSONEncoder):
+    """A custom encoder class for SomeDataStructure"""
+
+    def default(
+        self,
+        o,
+    ):
+        """
+        A custom default encoder.
+        In reality this should work for nearly any iterable.
+        """
+        try:
+            iterable = iter(o)
+        except TypeError:
+            pass
+        else:
+            return list(iterable)
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, o)
+
+
+class SomeDataStructure:
+    """A bullshit data structure for example's sake."""
+
+    def __init__(
+        self,
+    ):
+        self.shoe_size_meters = 0.25  # Shaq, watch out!
+        self.initialization_dt = datetime.now(timezone.utc)
+
+    def __iter__(
+        self,
+    ):
+        """
+        Return a generator of the data initialized in the self.__init__
+        func.
+        """
+        yield {
+            "shoe_size_meters": self.shoe_size_meters,
+            "initialization_dt": self.initialization_dt.strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            ),
+        }
+
+    def __str__(
+        self,
+    ):
+        return json.dumps(
+            self,
+            cls=SomeDataStructureEncoder,
+        )
+
+    def __repr__(
+        self,
+    ):
+        return self.__str__()
+```
+
+You can grab all of this including a fully-covered test suite via [Github](https://github.com/thinkjrs/demo-code/tree/main/json-encode-python-classes).
