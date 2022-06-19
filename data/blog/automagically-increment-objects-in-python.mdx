@@ -1,0 +1,423 @@
+---
+title: Automagically Increment Objects in Python
+date: '2022-06-15'
+tags: ['Python', 'Standard Library', 'OOP', 'Collections', 'Developer']
+draft: false
+summary: "Do you loop through dictionaries to increment values? Of course you do! There's a better way..."
+images: ['/static/images/automagically-increment-objects-in-python.jpg']
+authors: ['default']
+layout: PostLayout
+canonicalUrl: https://slightlysharpe.com/blog/automagically-increment-objects-in-python
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/automagically-increment-objects-in-python.jpg"
+  alt="A bright green Python snake on a dark background to symbolically reference the Python programming language via python.org"
+  height={800}
+  width={1200}
+/>
+> Photo by [Chris Ried](https://unsplash.com/@cdr6934) on [Unsplash](https://unsplash.com).
+
+_This was originally posted on [Tincre's SlightlySharpe.com blog](https://slightlysharpe.com/)._
+
+## [`collections.Counter`](https://docs.python.org/3/library/collections.html#counter-objects)
+
+The Python standard library's `collections` module offers datatype alternatives to the built-in
+containers [`list`](https://docs.python.org/3/library/stdtypes.html#list), [`tuple`](https://docs.python.org/3/library/stdtypes.html#tuple), [`set`](https://docs.python.org/3/library/stdtypes.html#set), and [`dict`](https://docs.python.org/3/library/stdtypes.html#dict).
+
+According to
+[Python's documentation](https://docs.python.org/3/library/collections.html#counter-objects)
+, the [`Counter`]() `dict` subclass
+
+> is provided to support convenient and rapid tallies.
+
+In particular, `Counter` objects are absolutely fantastic at combining dictionary/map-like
+objects with only numeric values.
+You know, things like application metrics,
+pipeline measurements during model training, and combining multiple disparate
+samples into one.
+
+### Digging into `Counter`
+
+Fire up your Python console, import the `collections` module, and
+instantiate a `Counter` object:
+
+```python
+import collections
+
+my_piano_ballad_recordings = Counter({"Colder Weather": 2, "Mad World": 1})
+```
+
+Now you have a `Counter` object `my_piano_ballad_recordings` that holds
+the song title as a string key and an integer _number of times the track has been recorded by you_. Feel free to modify for your own recordings!
+
+Now let's say we just got a burst of inspiration and recorded another
+take of Gary Jule's legendary _Mad World_. Add it and experience the magic of the `Counter` object.
+
+```python
+my_piano_ballad_recordings.update({"Colder Weather": 1})
+```
+
+Print that and you get something like:
+
+```bash
+Counter({"Colder Weather": 3, "Mad World": 1})
+```
+
+Notice how that _Colder Weather_ entry was updated automagically? In examining
+the `main()` function within the `counter.py` file you can see that
+the call to `update` above _doesn't wipe out the previous entries_, opposite of
+the behavior of a traditional Python `dict` dictionary.
+
+#### Converting back to regular dictionaries
+
+A particularly amazing feature of the `Counter` object is that it can be
+converted to a dictionary almost effortlessly.
+
+```python
+my_dict = dict(my_piano_ballad_recordings)
+```
+
+Say for example that you'd like to send everything in your counter to an
+HTTP consumer. Simply convert to a `dict` and rock the `json` module like usual:
+
+```python
+import json
+my_dict = dict(my_piano_ballad_recordings)
+my_json = json.dumps(my_dict)
+```
+
+> You can add custom encoders here too; see [Making Python Classes JSON Serializable](https://slightlysharpe.com/blog/making-python-classes-json-serializable) for an overview.
+
+#### All the other cool `dict` stuff is built-in
+
+Because `Counter` is a subclass of the regular Python `dict` datastructure you
+can perform all the usual actions on it. For example:
+
+##### Get keys as a `list`
+
+```python
+list(my_piano_ballad_recordings)
+```
+
+##### Count the keys
+
+```python
+len(my_piano_ballad_recordings)
+```
+
+##### Rock `get` versus bracket indexing
+
+```python
+my_piano_ballad_recordings['Colder Weather']
+my_piano_ballad_recordings.get('Colder Weather')
+```
+
+#### Gotchas
+
+Though _almost_ the same, keep in mind that `Counter` objects **return `0`** for
+keys that do not exist, rather than raise an exception or return None.
+
+You read that correctly. Running the following assertion will result in `True`:
+
+```python
+assert my_piano_ballad_recordings['Song Not In Index'] == 0
+```
+
+Lastly, don't forget that you should only store numeric types in your `Counter`
+objects. Add your string values after you're done iterating or keep them
+as a separate pair.
+
+### Inventory
+
+So now let's build a simple set of classes for
+inventory management to demonstrate how useful the `Counter` tool can be.
+Along the same lines as our personal tracking of
+recordings, let's assume we're tasked with tracking inventory for a record
+store.
+
+#### An `inventory` module
+
+We will start by building out a class to represent an `Inventory`.
+
+> As an important business requirement let's require this class to allow us to represent many different types of inventory.
+
+Furthermore, our use case requires frequent updating of inventory numbers given
+a unique product ID. A `dict` might be perfect, but maybe there's a way to
+not worry about actually programming the integer arithmetic to do the
+updating. _This is just inventory after all!._
+
+**`[CHAT]: 👋 collections.Counter enters the chat...`**
+
+Let's inherit from the `Counter` object and see what happens.
+
+```python
+class Inventory(collections.Counter):
+    def __init__(self,):
+        super().__init__()
+```
+
+Now we have a `Counter` class named `Inventory` to which we can add enhanced,
+customized functionality. We can add `save`, `load`, other methods, and some metadata attributes to customize our class.
+
+```python
+class Inventory(collections.Counter):
+    def __init__(
+        self,
+        id: Union[str, None] = None,
+        data: Union[Dict[str, Any], None] = None,
+    ):
+        super().__init__(data)
+        self.id = id or str(uuid.uuid4())
+        self.filename = f"inventory-{self.id}.json"
+        self.filepath = self.load()
+```
+
+Now we can instantiate the object with `Inventory(id="record-store", data=my_inventory_data)` or even just `Inventory()`. The `filename` and `filepath` attributes
+will become clearer in short order.
+
+**Add `save` functionality**
+
+Now we need the ability to save our data. Let's add a `save` method:
+
+```python
+class Inventory(collections.Counter):
+    ...
+    def save(
+        self,
+    ):
+        """Save the inventory object to the local database."""
+        self.filepath = managedb.save_local_inventory(
+            self, filename=self.filename
+        )
+        return self.filepath
+
+```
+
+**Add `load` functionality**
+
+And because we're normal, we'd like the ability to load up that data-saving
+functionality we so swiftly added.
+
+```python
+class Inventory(collections.Counter):
+    ...
+    def load(
+        self,
+    ):
+        result = None
+        try:
+            result = managedb.load_local_inventory(self.filename)
+
+            self.filepath = f"{os.getcwd()}/{self.filename}"
+            if not result:
+                return  # pragma: no cover
+            for key, val in result.items():
+                self[key] = val
+            return self
+
+        except FileNotFoundError:
+            logging.info(f"Attempted to load {self.filename}. Not found.")
+
+```
+
+See the `inventory.py` file to dive into the full class. Now let's review
+the `managedb` module functions you see in immediate use, above.
+
+As you'll see in the [example below](#keeping-track-of-inventory-for-the-record-store), `Counter` is abstracted from the use of the `Inventory` object. This
+is simple and allows streamlining of incremental business logic. For our use
+case - building an inventory system for a record store - inheriting from
+`Counter` is just the right choice.
+
+#### Local database
+
+Using the filesystem (or in-memory) is a quick and dirty way to build
+your application logic and interfaces, as it allow the developer to avoid the
+specificities required for database design and programming. We do that with the
+`managedb` module here.
+
+A major advantage of developing this way is that it forces technical focus on the
+_use_ of the database prior to the developer's resources (time) being spent on
+model/schema, architecture, and/or database deployment. This necessarily helps
+the developer specify requirements prior to building the database infrastructure.
+
+The `managedb` module contains just two primary functions that allow the
+`Inventory` user to
+
+- save data to disk (`save_local_inventory`), and
+- load data from disk (`load_local_inventory`).
+
+As its functionality is self-explanitory, we'll avoid a deep dive of this module
+as it is out-of-scope with investigating the `Counter` class. Replace those
+functions with calls to a db and you're good to go for a much more sturdy setup.
+
+#### Tests
+
+Testing is an incredibly important part of the software development process,
+distinctly responsible for functionality quality assurance. There is not other
+stage that allows the developer to _ensure_ that software written functions
+as intended.
+
+As such, we have included unit tests with full code-base coverage for these
+examples. In particular, they also provide usability guides for the `inventory`
+and `managedb` modules.
+
+> 🌶 We also included tests for the initial `counter` code!
+
+You'll find a test for each module starting with `test_<module>.py` in the [Github repo](https://github.com/thinkjrs/demo-code/tree/main/automagically-increment-objects-in-python).
+
+### Keeping track of inventory for the record store
+
+So let's do a few things, such as manage inventory for a fictitious record store!
+There's a test in `test_inventory.py` titled `test_Inventory_demo` which runs the code below.
+
+#### Declare a fresh inventory
+
+Let's declare ourselves a fresh `Inventory` object:
+
+```python
+inventory = Inventory(
+    id="record-store",
+)
+```
+
+You can use it like a dictionary with a few upgrades.
+
+#### Populate the inventory with current data
+
+Say we have the following schema for our data, with ten different records on
+the shelves. We represent each with a unique `product_id`:
+
+```python
+inventory_data = {
+    "<product_id>": <amount_of_product_in_inventory>,
+    "<product_id>": <amount_of_product_in_inventory>
+}
+```
+
+Now all we need to do is call the `update` method on your `inventory` variable.
+
+```python
+inventory.update(inventory_data)
+
+# check sanity
+for key, value in inventory_data.items():
+    assert inventory[key] == value
+```
+
+Wow, that's pretty easy. The `Inventory` class inherits the `update` (and other) methods from its underlying `collections.Counter` object.
+
+So what happens when things change, i.e. inventory needs to be updated due to a sale of a record or reorder shipment arriving?
+
+#### Make some sales, update inventory
+
+Making changes is easy. It's exactly like above with the `update` method. Let's record a sale of two of the same record:
+
+```python
+changes_in_inventory = {
+    list(inventory_data)[0]: -2,
+}
+inventory.update(changes_in_inventory)
+```
+
+Check on that for our sanity, again:
+
+```python
+compare_inventory = (
+    lambda inventory, test_inventory, key, val: inventory[key]
+    == test_inventory[key] + val
+)
+assert compare_inventory(
+    inventory,
+    inventory_data,
+    list(inventory_data)[0],
+    -2,
+)
+```
+
+Awesome. So what about when the manager restocks the shelves with more
+records?
+
+**Order more albums, update inventory**
+
+```python
+changes_in_inventory = {
+    list(inventory_data)[0]: 1,
+    list(inventory_data)[1]: 3,
+}
+inventory.update(changes_in_inventory)
+
+# sanity check
+assert compare_inventory(
+    inventory,
+    inventory_data,
+    list(inventory_data)[0],
+    1 - 2,
+)
+assert compare_inventory(
+    inventory,
+    inventory_data,
+    list(inventory_data)[1],
+    3,
+)
+```
+
+#### Save the data for later
+
+Now let's save the inventory data and reload it, keeping changes we made.
+
+All we need to do is call the `save` method which returns the file path as a
+string.
+
+```python
+filepath = inventory.save()
+assert os.path.exists(filepath)
+del inventory
+```
+
+#### Load the data
+
+To load it back up simply instantiate a new `Inventory` object and chain the
+`load` method to it, which returns the saved `Inventory` object.
+
+```python
+# Load it all back up
+inventory = Inventory(
+    id="record-store",
+).load()
+
+# sanity checks
+assert isinstance(inventory, Inventory)
+for key in list(inventory_data):
+    assert inventory[key]
+
+# cleanup
+os.remove(filepath)
+assert not os.path.exists(filepath)
+
+assert Inventory().load() is None
+```
+
+Now you have a simple, working application to manage the record inventory on
+the shelves of your imaginary record store.
+
+Grab the code on [Github](https://github.com/thinkjrs/demo-code/tree/main/automagically-increment-objects-in-python).
+
+### Review
+
+In short, the standard library `collections.Counter` object can be a useful
+alternative to a plain `dict`.
+
+Record stores aside, this trivial example makes a few features clear:
+
+- Inheriting from `Counter` is incredibly easy.
+- `Counter` streamlines the simple business logic of incrementation, a common need in business application development.
+- The `Counter` tool helps engender more communicative abstraction and simpler architecture.
+
+What can you build with `Counter`? You can grab all of this including a fully-covered test suite via [Github](https://github.com/thinkjrs/demo-code/tree/main/automagically-increment-objects-in-python). And if you like what you read, sign up for our newsletter below.
+
+<BlogNewsletterForm />
+
+✨ Lastly, check out [Promo, by Tincre](https://tincre.dev/promo) to add a marketing
+agency to your app, site, or platform. ✨
