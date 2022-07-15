@@ -1,6 +1,6 @@
 {
   "name": "thinkjrs.dev",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": false,
   "license": "MIT",
   "repository": "https://github.com/thinkjrs/thinkjrs.dev",
@@ -70,7 +70,7 @@
     "*.+(js|jsx|ts|tsx)": [
       "eslint --fix"
     ],
-    "*.+(js|jsx|ts|tsx|json|css|md|mdx)": [
+    "*.+(js|jsx|ts|tsx|json|css)": [
       "prettier --write"
     ]
   }
