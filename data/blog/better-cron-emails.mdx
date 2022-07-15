@@ -1,0 +1,112 @@
+---
+title: Better Cron Emails
+date: '2022-07-15'
+tags: ['GNU/Linux', 'Bash Script', 'CLI', 'Cron', 'Cronic']
+draft: false
+summary: "Do you get a lot of 'cram' these days with all your cron jobs blasting you emails by default?"
+images: ['/static/images/automagically-increment-objects-in-python.jpg']
+authors: ['default']
+layout: PostLayout
+canonicalUrl: https://slightlysharpe.com/blog/automagically-increment-objects-in-python
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/better-cron-emails.webp"
+  alt="A white, old-school alarm clock in the middle of a dual-toned pink (left) and blue (right) image to signify the closest thing @thinkjrs could quickly find that visually represented the program 'cron'."
+  height={1322}
+  width={1980}
+/>
+<div className="text-sm text-gray-600">
+  Photo by{' '}
+  <a target="_blank" noreferrer="true" href="https://unsplash.com/@icons8">
+    Icons8 Team
+  </a>{' '}
+  on <a href="https://unsplash.com/s/photos/schedule">Unsplash</a>
+</div>
+In assuming you run [`cron`](https://habilis.net/cronic/) jobs all the time, on all your systems,
+like I do, you've probably set the crontab options or the `MAILTO` variable within `/etc/crontab`
+configuration file or utilized stderr and stdout redirects.
+
+## _There is a better way!_
+
+Meet [`Cronic`](https://habilis.net/cronic/), a
+shell script by Chuck Houpt
+
+> to help control the most annoying feature of cron: unwanted emailed output,
+> or 'cram' (cron spam).
+
+### Basic Usage
+
+Instead of writing:
+
+```cron
+* * * * * myscript >/dev/null 2>&1
+```
+
+you can now write:
+
+```cron
+* * * * * cronic myscript
+```
+
+You can avoid sweeping all cron errors under the
+rug, as we do with stderr and stdout redirection to the `/dev/null` black hole
+while simultaneously cleaning up the readability of your scripts.
+
+### Get it on Github
+
+The Cronic script is available on Github via the community here: [justincase/cronic](https://github.com/justincase/cronic). That version is v2 and I've submitted a [PR to upgrade things to v3](https://github.com/justincase/cronic/pull/2).
+
+**If you need v3 now, fork my copy at [thinkjrs/cronic](https://github.com/thinkjrs/cronic/tree/master).**
+
+### Installation
+
+If you're a familiar 'nix user just make the script executable and put it somewhere in your path.
+
+#### 'Nix Scripting Step-by-step
+
+For those readers less familiar with 'nix scripting, let's break down step by
+step how to install Cronic.
+
+Open up your terminal:
+
+1. Clone the repo via `git clone git@github.com:thinkjrs/cronic`.
+2. Change directories into the new repo directory `cd cronic`.
+3. Make `cronic` executable via `chmod +x cronic`.
+4. Make a `bin` directory in your user `$HOME` directory, i.e. `mkdir $HOME/bin` or `mkdir ~/bin`.
+   > Don't worry, if you have a `bin` directory within your home directory already this will not overwrite it.
+5. Make sure that `~/bin` is added to your path via `.profile`, `.bash_profile`, `.zsh_profile`, `.bashrc`, or whatever shell configuration files you use.
+
+For example, on some systems I have the following in my `.bashrc`:
+
+```bash
+PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+... # more stuff added to the PATH
+export PATH # now we export it to be used by the shell
+```
+
+6. Soft-link your executable cronic script to your `~/bin` directory. Assuming you're still in your cronic directory from Github (if not, navigate your shell there):
+
+```bash
+CRONIC_LOC=$(pwd)/cronic # set a temporary shell variable
+pushd ~/bin # temporarily go into your ~/bin directory
+ln -s $CRONIC_LOC cronic # create a soft-link _to_ the CRONIC_LOC named cronic
+popd # return to your original cronic directory from Github
+```
+
+### 'Nix Extras
+
+You might have noticed the use of `popd` and `pushd` above, in addition to
+creating some `~/bin` directory for your user-space cronic script.
+
+These are intentional as built-in programs and/or conventions commonly used in the GNU/Linux community.
+
+- Read more on the [Linux Filesystem Hierarchy](https://tldp.org/LDP/Linux-Filesystem-Hierarchy/html/).
+- Dig into [`pushd` and `popd`](https://tldp.org/LDP/abs/html/internal.html#POPDREF)
+
+If you're interested in improving overall 'nix skills check out [Linux Journey](https://linuxjourney.com/).
+
+I hope you found this useful and thanks for reading!
+
+<BlogNewsletterForm />
