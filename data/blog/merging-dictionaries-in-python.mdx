@@ -1,0 +1,174 @@
+---
+title: Merging Dictionaries In Python
+date: '2023-01-25'
+tags: ['Python', 'Dict', 'Dictionaries', 'Dictionary', 'Developer']
+draft: false
+summary: "In this article learn a quick and simple strategy to merge dictionaries with Nonetype values for similar keys."
+images: ['/static/images/merging-dictionaries-in-python.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/merging-dictionaries-in-python.webp"
+  alt="A massive merging of industrial trains in a train yard with blue and brown colors apparently in the morning."
+  height={800}
+  width={1200}
+/>
+> Photo by [Zach Brown](https://unsplash.com/@railroadactive) on [Unsplash](https://unsplash.com).
+
+At [Tincre](https://tincre.com) I use a dictionary merging (and class construction) strategy
+that is highly flexible and allows us to reason well with our JavaScript/TypeScript frontends that 
+serve client users. You can read about that on our [Slightly Sharpe blog](https://slightlysharpe.com/data-modeling-at-tincre) for the deets.
+
+But here, I'm simply going to show you how we actually merge Python dictionaries
+that have lots of `Nonetype` values and sparsely, string or other values.
+
+## Merging strategies
+
+So let's start with an example [Pydantic](https://pydantic.dev) `PaymentFeatures` class, which we'll use as
+our "dictionary". 
+
+```python 
+# pydantic
+
+class PaymentFeatures(BaseModel):
+    """A class to model data features (columns) for
+    the Payment table stored in our PostgreSQL database"""
+    myParam: Union[str, None] = None
+    myOtherParam: Union[str, None] = None
+```
+> You can use the `.dict()` method to get back a dictionary on Pydantic objects.
+
+Oftentimes I need to merge several dictionaries with the same keys but **don't want
+`None` values to overwrite keys with `str` or to be specific, non-`Nonetype`, values.** 
+
+If you're a regular Pythonista you know that this behavior isn't totally built-in or rather, off-the-shelf.
+
+### Regular dictionary merging 
+
+If you want to simply merge two dictionaries, keeping the last seen value for shared keys, Python 3.9
+adds the `Dict` union operator with [PEP 584](https://peps.python.org/pep-0584/). 
+
+> Check out how the CPython API was updated [via the original PR #12088](https://github.com/python/cpython/pull/12088).
+
+To combine two dictionaries simply:
+
+```python
+my_dict0 = dict(awesomeKeyName = "awesome value 0")
+my_dict1 = dict(awesomeKeyName = "awesome value 1")
+# return a new dict
+my_merged_dict_1_overwrites_0 = my_dict0 | my_dict1
+print(my_merged_dict_1_overwrites_0)
+```
+
+Yeap, that's super cool and the community was super happy with the addition to the Python `dict` build-in. Life is easier.
+
+And yes, for those language lawyers out there, you can also do the same thing in-place:
+
+```python
+my_dict0 = dict(awesomeKeyName = "awesome value 0")
+my_dict1 = dict(awesomeKeyName = "awesome value 1", anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName")
+# in-place modification of my_dict0
+my_dict0 |= my_dict1
+print(my_dict0)
+```
+
+#### But that `None` behavior...
+
+What happesn when one of these key values is of type `None`? In particular, will `Nonetype` values overwrite
+strings and other values? 
+
+Let's examine the situation by replacing the string value for `awesomeKeyName` in `my_dict1` with `None`. 
+
+Look at this result:
+
+```python
+my_dict0 = dict(awesomeKeyName = "awesome value 0")
+my_dict1 = dict(awesomeKeyName = None, anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName")
+# in-place modification of my_dict0
+my_dict0 |= my_dict1
+print(my_dict0)
+```
+
+Oh no! That's not what we want (but what we should expect). 
+
+### `Nonetype` avoidance merging 
+
+So let's use [dictionary comprehensions]() to get the job done and then throw that
+into a simple function you can reuse.
+
+```python
+my_dict0 = dict(awesomeKeyName = "awesome value 0")
+my_dict1 = dict(awesomeKeyName = None, anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName")
+# merge the two dictionaries avoiding None values
+my_merged_dict_1_overwrites_0_but_avoiding_nonetype = \
+    {key: val for key, val in my_dict0.items() if val is not None} | \
+    {key: val for key, val in my_dict1.items() if val is not None}
+print(my_merged_dict_1_overwrites_0_but_avoiding_nonetype)
+```
+
+Perfect. Empty strings, boolean values, and everything else that isn't `Nonetype` is untouched.
+But those pesky `None` values are tossed (along with their keys, if nothing other than `Nonetype` values are present).
+
+#### Make it reusable
+```python
+def merge_without_none(lhs: dict, rhs: dict) -> dict:
+    """Merge lhs and rhs dictionaries, exluding from both and 
+    avoiding overwriting lhs with Nonetype values."""
+    return {key: val for key, val in lhs.items() if val is not None} | \
+    {key: val for key, val in rhs.items() if val is not None}
+
+assert "test val" in merge_without_none({"testKey": "test val"}, {"testKey": None}).get("testKey")
+assert not merge_without_none({"testKey": None}, {"testKey": None}).get("testKey")
+```
+
+> I'll leave it as an exercise for the reader to _properly_ type the `lhs` and `rhs`.
+
+### Putting it all together
+
+Let's back up to our `PaymentFeatures` class from before and use it to merge two
+of those classes instantiated.
+
+#### Instantiate our `PaymentFeatures` objects
+```python
+# instantiate the objects
+pf0 = PaymentFeatures(myParam=42, myOtherParam="Is the meaning of life",)
+pf1 = PaymentFeatures(myParam=42, myOtherParam=None,)
+```
+
+#### Merge the dictionaries
+
+Let's use our sparklin' new function and combine the two, keeping `"Is the meaning of life"`
+```python
+pf_merged = merge_without_none(pf0.dict(), pf1.dict())
+```
+
+_Remember that the `pf0` and `pf1` objects we used are Pydantic models so convert them to dictionaries prior to merging!_
+
+#### Gotchas
+
+Recall that the ordinary Python "merge" methods always rewrite keys present in both the
+left-hand-side and right-hand-side with the right-hand-side values. 
+
+That means that if we add something besides a `None` value to `pf1`'s `myOtherParam` attribute,
+we should expect the `merge_without_none` function to overwrite the `myOtherParam` value
+from `pf0`.
+
+## Summary 
+
+To summarize, we
+- reviewed the standard way to merge two dictionaries in Python 3.9 via 
+the newfangled union operator, 
+- showed a simple dictionary comprehension method to merge and avoid `None` values ,
+- added the method to a reusable function, and
+- used that function with Pydantic models, as a toy, but real-world example.
+
+If you liked this article, sign up for the newsletter so you get notified of additional 
+rockin' posts from me.
+
+<BlogNewsletterForm />
+
+✨ Lastly, check out my baby, [Tincre Promo](https://tincre.dev/promo), to add a marketing
+agency to your app, site, or platform. ✨
