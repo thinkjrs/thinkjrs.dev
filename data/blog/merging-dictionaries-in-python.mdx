@@ -20,15 +20,17 @@ layout: PostLayout
 
 At [Tincre](https://tincre.com) I use a dictionary merging (and class construction) strategy
 that is highly flexible and allows us to reason well with our JavaScript/TypeScript frontends that 
-serve client users. You can read about that on our [Slightly Sharpe blog](https://slightlysharpe.com/data-modeling-at-tincre) for the deets.
+serve client users. You can read about that on our [Slightly Sharpe blog](https://slightlysharpe.com/blog/data-modeling-at-tincre) for the deets.
 
-But here, I'm simply going to show you how we actually merge Python dictionaries
-that have lots of `Nonetype` values and sparsely, string or other values.
+But herein, I'm simply going to show you how we actually merge Python dictionaries
+that have lots of `Nonetype` values and sparsely, `str` or other value types, like `int` or `float` values.
 
 ## Merging strategies
 
 So let's start with an example [Pydantic](https://pydantic.dev) `PaymentFeatures` class, which we'll use as
-our "dictionary". 
+our dictionary, per se. 
+
+> You can use the `.dict()` method to get back a dictionary on Pydantic objects.
 
 ```python 
 # pydantic
@@ -39,12 +41,10 @@ class PaymentFeatures(BaseModel):
     myParam: Union[str, None] = None
     myOtherParam: Union[str, None] = None
 ```
-> You can use the `.dict()` method to get back a dictionary on Pydantic objects.
-
 Oftentimes I need to merge several dictionaries with the same keys but **don't want
 `None` values to overwrite keys with `str` or to be specific, non-`Nonetype`, values.** 
 
-If you're a regular Pythonista you know that this behavior isn't totally built-in or rather, off-the-shelf.
+If you're a regular Pythonista you know that this behavior isn't totally built-in or rather, not available off-the-shelf.
 
 ### Regular dictionary merging 
 
@@ -63,13 +63,16 @@ my_merged_dict_1_overwrites_0 = my_dict0 | my_dict1
 print(my_merged_dict_1_overwrites_0)
 ```
 
-Yeap, that's super cool and the community was super happy with the addition to the Python `dict` build-in. Life is easier.
+Yeah, you're right, that's super cool. And the community was thrilled with the addition to the Python `dict` built-in. Life was made easier, thanks to open-source, yet again. I digress.
 
 And yes, for those language lawyers out there, you can also do the same thing in-place:
 
 ```python
-my_dict0 = dict(awesomeKeyName = "awesome value 0")
-my_dict1 = dict(awesomeKeyName = "awesome value 1", anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName")
+my_dict0 = dict(awesomeKeyName = "awesome value 0",)
+my_dict1 = dict(
+    awesomeKeyName = "awesome value 1",
+    anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName",
+)
 # in-place modification of my_dict0
 my_dict0 |= my_dict1
 print(my_dict0)
@@ -77,7 +80,7 @@ print(my_dict0)
 
 #### But that `None` behavior...
 
-What happesn when one of these key values is of type `None`? In particular, will `Nonetype` values overwrite
+What happens when one of these key values is of type `None`? In particular, will `Nonetype` values overwrite
 strings and other values? 
 
 Let's examine the situation by replacing the string value for `awesomeKeyName` in `my_dict1` with `None`. 
@@ -85,8 +88,11 @@ Let's examine the situation by replacing the string value for `awesomeKeyName` i
 Look at this result:
 
 ```python
-my_dict0 = dict(awesomeKeyName = "awesome value 0")
-my_dict1 = dict(awesomeKeyName = None, anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName")
+my_dict0 = dict(awesomeKeyName = "awesome value 0",)
+my_dict1 = dict(
+    awesomeKeyName = None,
+    anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName",
+)
 # in-place modification of my_dict0
 my_dict0 |= my_dict1
 print(my_dict0)
@@ -100,8 +106,11 @@ So let's use [dictionary comprehensions]() to get the job done and then throw th
 into a simple function you can reuse.
 
 ```python
-my_dict0 = dict(awesomeKeyName = "awesome value 0")
-my_dict1 = dict(awesomeKeyName = None, anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName")
+my_dict0 = dict(awesomeKeyName = "awesome value 0",)
+my_dict1 = dict(
+    awesomeKeyName = None,
+    anotherAwesomeKeyName = "awesome value 1 for anotherAwesomeKeyName",
+)
 # merge the two dictionaries avoiding None values
 my_merged_dict_1_overwrites_0_but_avoiding_nonetype = \
     {key: val for key, val in my_dict0.items() if val is not None} | \
@@ -109,19 +118,25 @@ my_merged_dict_1_overwrites_0_but_avoiding_nonetype = \
 print(my_merged_dict_1_overwrites_0_but_avoiding_nonetype)
 ```
 
-Perfect. Empty strings, boolean values, and everything else that isn't `Nonetype` is untouched.
+Perfect. Empty strings, boolean values, and everything else that isn't `Nonetype` is left alone.
 But those pesky `None` values are tossed (along with their keys, if nothing other than `Nonetype` values are present).
 
 #### Make it reusable
 ```python
 def merge_without_none(lhs: dict, rhs: dict) -> dict:
-    """Merge lhs and rhs dictionaries, exluding from both and 
+    """Merge lhs and rhs dictionaries, excluding from both and 
     avoiding overwriting lhs with Nonetype values."""
     return {key: val for key, val in lhs.items() if val is not None} | \
     {key: val for key, val in rhs.items() if val is not None}
 
-assert "test val" in merge_without_none({"testKey": "test val"}, {"testKey": None}).get("testKey")
-assert not merge_without_none({"testKey": None}, {"testKey": None}).get("testKey")
+assert "test val" in merge_without_none(
+    {"testKey": "test val"}, 
+    {"testKey": None},
+).get("testKey")
+assert not merge_without_none(
+    {"testKey": None},
+    {"testKey": None},
+).get("testKey")
 ```
 
 > I'll leave it as an exercise for the reader to _properly_ type the `lhs` and `rhs`.
@@ -129,20 +144,31 @@ assert not merge_without_none({"testKey": None}, {"testKey": None}).get("testKey
 ### Putting it all together
 
 Let's back up to our `PaymentFeatures` class from before and use it to merge two
-of those classes instantiated.
+of them that we instantiate.
 
 #### Instantiate our `PaymentFeatures` objects
+
+We'll rely on the `.dict()` method from Pydantic, as mentioned above.
 ```python
 # instantiate the objects
-pf0 = PaymentFeatures(myParam=42, myOtherParam="Is the meaning of life",)
-pf1 = PaymentFeatures(myParam=42, myOtherParam=None,)
+pf0 = PaymentFeatures(
+    myParam=42,
+    myOtherParam="Is the meaning of life",
+)
+pf1 = PaymentFeatures(
+    myParam=42,
+    myOtherParam=None,
+)
 ```
 
 #### Merge the dictionaries
 
 Let's use our sparklin' new function and combine the two, keeping `"Is the meaning of life"`
 ```python
-pf_merged = merge_without_none(pf0.dict(), pf1.dict())
+pf_merged = merge_without_none(
+    pf0.dict(),
+    pf1.dict(),
+)
 ```
 
 _Remember that the `pf0` and `pf1` objects we used are Pydantic models so convert them to dictionaries prior to merging!_
@@ -166,7 +192,7 @@ the newfangled union operator,
 - used that function with Pydantic models, as a toy, but real-world example.
 
 If you liked this article, sign up for the newsletter so you get notified of additional 
-rockin' posts from me.
+rockin' posts from [me](https://github.com/thinkjrs).
 
 <BlogNewsletterForm />
 
