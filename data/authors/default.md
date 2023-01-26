@@ -1,6 +1,6 @@
 ---
 name: Jason R. Stevens, CFA
-avatar: /static/images/avatar.jpg
+avatar: /static/images/avatar.png
 occupation: Co-founder | Developer | Quant
 company: Tincre, Recondite Capital, University of Chicago
 email: jason@thinkjrs.dev
