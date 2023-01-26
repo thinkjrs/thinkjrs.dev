@@ -35,9 +35,9 @@ export default function AuthorLayout({ children, frontMatter }) {
             </div>
           </div>
           <div className="prose max-w-none pt-8 pb-8 dark:prose-dark xl:col-span-2">{children}</div>
-          <div id="newsletter-form" className="py-12">
-            <BlogNewsletterForm />
-          </div>
+        </div>
+        <div id="newsletter-form" className="p-12">
+          <BlogNewsletterForm />
         </div>
       </div>
     </>
