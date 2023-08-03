@@ -1,0 +1,127 @@
+---
+title: A Simple Bug Hunting Formula
+date: '2023-08-03'
+tags: ['Python', 'Software development', 'Pytest', 'Testing', 'Bugs']
+draft: false
+summary: "Do you hunt for bugs? If not, your software doesn't work. For those of you with working software, here's a formula for bug hunting successfully."
+images: ['/static/images/simple-bug-hunting-formula.jpg']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/simple-bug-hunting-formula.jpg"
+  alt="A green bug camoflauged to symbolically reference the inevitable bugs written during the process of software development."
+  height={800}
+  width={1200}
+/>
+  
+> Photo by [David Clode](https://unsplash.com/@davidclode) on [Unsplash](https://unsplash.com).
+
+Assuming you have working software, as a developer, you hunt for bugs pretty much all the time.
+
+A 40+ year developer himself, my father-in-law once told me that (paraphrased)
+> writing software _is_ writing bugs. 
+
+So let's dive into a quick and simple algorithm to hunt for bugs successfully, which I just used this
+morning. 
+
+## Fixing my buggy Asana task code
+
+At [Tincre](https://tincre.com) we let
+people and businesses become digital ad agencies overnight. We abstract pretty much everything
+it takes, aside from setting up the LLC and making the initial client sale. It's pretty cool.
+
+But ads are a minefield and many parts are still completely manual, human processes, when done correctly.
+
+For these manual pieces, we leverage software to supercharge the manual process, making Tincre humans
+more efficient. Task management is a big part of that. In recently switching from Gitlab to Asana for
+task management, I wrote a small but annoying bug in how we generate content for ensuring ad campaigns
+are stopped. Let's dig in.
+
+### The bug
+
+The code below creates a simple dictionary with two string parameters, `title` and `content`.
+
+These populate our tasks over at Asana. In particular, our "stop" campaign tasks were missing an f-string,
+a string substitution feature within Python, in case you're unfamiliar.
+
+Find below a simplified version of the buggy function.
+
+```python
+def generate_asana_task_content(
+    task_type: str,
+    campaign: schemas.InternalCampaign,
+):
+    if task_type == "stop":
+        return dict(
+            title=":octagonal_sign: STOP {campaign.adTitle} - {campaign.pid}",
+            content=generate_asana_task_html(campaign),
+        )
+    if task_type == "create":
+        return dict(
+            title=f":mega: CREATE {campaign.adTitle} - {campaign.pid}",
+            content=generate_asana_task_html(campaign),
+        )
+    if task_type == "delete":
+        return dict(
+            title=f":fire: DELETE {campaign.adTitle} - {campaign.pid}",
+            content=generate_asana_task_html(campaign),
+        )
+```
+
+See the bug? The "stop" tree `title` parameter is missing an f-string, so our `Campaign` schema object
+doesn't substitute the `campaign.adTitle` or `campaign.pid` (Promo ID) information within the `title`
+string.
+
+Tsk. Tsk. But at least we found the bug. Okay, so let's just add a little `f` right before the string, push
+changes and move along with our day. 
+
+Wrong!
+
+### Write a "bug" test
+
+Instead of fixing this right away, we leave it open in our editor and open up the `test_asana.py` test file.
+
+Our objective is to write a test that fails for _this exact issue._ Below is an example of that test.
+
+```python
+assert (
+    internalCampaign_schema.pid
+    in asana.generate_asana_task_content("stop", internalCampaign_schema)[
+        "title"
+    ]
+)
+```
+
+Now run your tests and ensure that your suite fails.
+
+### Fix the bug, pass the test
+
+Now we go back to our buggy function code from above and add our `f` prior to the string in the
+"stop" tree `title` parameter, e.g.
+
+```python
+...
+  if task_type == "stop":
+      return dict(
+          title=f":octagonal_sign: STOP {campaign.adTitle} - {campaign.pid}",
+          content=generate_asana_task_html(campaign),
+      )
+... 
+```
+
+We save that file with `:w`; oops, you don't use [vim](https://vim.org)? Why not?
+
+Now run the test. It passes! Hooray! 
+
+### You're done
+Now commit, push, pass your CICD suite, and deploy. Go have a coffee. Have some lunch.
+
+Hunt for or write more bugs. In short, get on with your life.
+
+<BlogNewsletterForm />
+
+✨ Lastly, check out [Promo, by Tincre](https://tincre.dev/promo) to add a marketing
+agency to your app, site, or platform. ✨
