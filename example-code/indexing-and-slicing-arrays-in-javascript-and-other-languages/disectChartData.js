@@ -25,3 +25,8 @@ function disectChartData(labels, data, length) {
     data: data.slice(startDataIdx, endDataSliceIdx),
   }
 }
+
+// execution code
+const myArrayLabels = ['testing', 'array', 'indexes']
+const myArrayData = [1.0, 1.1, 1.2]
+console.log(JSON.stringify(disectChartData(myArrayLabels, myArrayData, 2), null, 2))
