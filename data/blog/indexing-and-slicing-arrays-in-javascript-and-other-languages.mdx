@@ -1,0 +1,293 @@
+---
+title: Indexing and Slicing Arrays in JavaScript and other languages
+date: '2023-10-03'
+tags: ['JavaScript', 'Software development', 'Beginner', 'Bugs', 'Programming Languages', 'Python', 'C++', 'Go']
+draft: false
+summary: "Dig into a simple outline of array indexing and slicing in JavaScript, Python and C++."
+images: ['/static/images/indexing-and-slicing-arrays-in-javascript-and-other-languages.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/indexing-and-slicing-arrays-in-javascript-and-other-languages.webp"
+  alt="Honeycomb arrangement representing array indexes in JavaScript."
+  height={900}
+  width={1200}
+/>
+  
+> Photo by [Ante Hamersmit](https://unsplash.com/https://unsplash.com/@ante_kante) on [Unsplash](https://unsplash.com).
+
+Indexing and slicing arrays are some of the most basic tasks in programming.
+Almost all programming
+languages have the ability to index and arrays, including both static and dynamic
+languages like Python (dynamic), JavaScript (dynamic), C++ (static) and Go (static).
+
+## Array indexing syntax in C++, Python, and JavaScript
+In many languages array indexing 
+looks something like the Python code below.
+
+```python
+>>> myArray = ['testing', 'array', 'indexes']
+>>> print(myArray[0])
+testing
+```
+
+In C++ _indexing_ the array looks the same as the Python above, though the other
+parts are different.
+
+```cpp
+// myArray.cpp
+#include <array>
+#include <iostream>
+int main() {
+    std::array<std::string, 3> myArray = {"testing", "array", "indexes"};
+    std::cout << myArray[0] << "\n";
+}
+```
+
+See how the indexing portion `myArray[0]` is the same?
+
+Now compile that C++ code and run it:
+```bash 
+c++ myArray.cpp && ./a.out
+testing
+```
+
+And yet again, the code below looks pretty much the same as Python, but now in JavaScript. 
+
+```js 
+let myArray = ['testing', 'array', 'indexes']
+console.log(myArray[0])
+testing
+```
+
+So to summarize _indexing_ `myArray` in all three languages:
+
+- Python: `myArray[0]`,
+- C++: `myArray[0]`, and
+- JavaScript: `myArray[0]`.
+
+🤯
+
+### Static versus dynamic
+
+You probably noticed that JavaScript and Python look quite alike, even for the
+initialization
+of `myArray`, whereas C++ looks quite different. That's because the former are _dynamic_
+programming languages while the latter is a static, compiled language.
+
+The "debate" or merits of one over the other aren't for this write-up; we'll save that
+for later, after your author is retired or rocking a CS PhD. 
+For now, since this article is _mostly_ about JavaScript, we'll stick to dynamic languages.
+
+### Other ways to index JavaScript arrays
+
+What's neat about JavaScript is that the `Array` built-in has
+another way to index arrays, using the `at` method.
+
+```javascript
+let myArray = ['testing', 'array', 'indexing']
+console.log(myArray.at(0))
+"testing"
+```
+
+Why is this useful? Well imagine that you don't want to risk doing something like
+the below happening.
+
+```javascript
+let myArray = ['testing', 'array', 'indexing']
+console.log(myArray[5])
+undefined
+```
+
+JavaScript's `Array.at()` method will return a `-1` value for an index not in the
+array, rather than undefined. This can be very useful for build-in sorting methods.
+
+## Grabbing a "slice"
+While we're at it, how would one go about getting several pieces of an 
+array at once? As in, get both values `"array"` and `"indexing"` from `myArray`? 
+
+Fortunately JavaScript's language gods have a nice, prepackaged answer for you: slicing.
+
+```javascript
+let myArray = ['testing', 'array', 'indexing']
+myArray.slice(0, 1)
+```
+
+Many other dynamic languages have this feature, too. In Python it's built right into the core
+of its "array" ([list](https://docs.python.org/3/library/stdtypes.html?highlight=list#list)). It's so common in modern languages that Go makes _slices_ built-in:, e.g.
+
+```go
+// slices.go 
+
+package main
+
+import "fmt"
+
+func main() {
+	myArray := [3]string{"testing", "array", "indexes"}
+
+	var s []string = myArray[0:1]
+	fmt.Println(s)
+}
+```
+
+In the code above `myArray` is called a _slice_ and used similarly to an array in JavaScript
+or list in Python.
+
+## Doing things with arrays and slicing
+
+So let's put some of this to use, in JavaScript, of course. Why don't we
+write a simple function that "chunks" some data for another function? 
+
+In particular, let's dig into the `disectChartData` function from [@Tincre's Promo dashboard](https://github.com/Tincre/promo-dashboard/blob/029dae1b4f146879329116d2fc4de951f4ed15d9/src/lib/disectChartData.ts)
+library.
+
+> _Note, that library function is written in TypeScript but I've converted it to JavaScript here._
+
+```JavaScript
+/**
+ * @description Given a Chart.js label array and a Chart.js data array and an
+ * integer length, return an object of those labels and data arrays sliced up
+ * to the ending lengths.
+ *
+ * @param { Array<string | null> }labels string labels to index data
+ * @param { Array<string | number | null> } data data to plot 
+ * @param { number } length length to slice _from the end of each array_
+ *
+ * @returns an object of sliced labels and data
+ */
+function disectChartData(labels, data, length) {
+  const endLabelSliceIdx = labels.length;
+  const endDataSliceIdx = data.length;
+  const startLabelIdx = Math.max(0, endLabelSliceIdx - length);
+  const startDataIdx = Math.max(0, endDataSliceIdx - length);
+  return {
+    labels: labels.slice(startLabelIdx, endLabelSliceIdx),
+    data: data.slice(startDataIdx, endDataSliceIdx),
+  };
+}
+```
+
+The function above is called when a user selects a time span in our
+apps' dashboards, like "1-month". It should return the latest data 
+for a 1-month (30 day) time horizon.
+
+As you can see, slicing comes in very handy here. If we didn't have slices, 
+the function would need to loop through the given arrays, copy over the values
+and send back new arrays. 
+
+By using slicing we're able to send back a reference to the original array,
+saving memory and execution time. ⏩️
+
+### Extra credit, C++ and Python
+
+Since I have been referencing other language syntax throughout this piece, let's 
+look at "slicing" in Python and C++. 
+
+> To refresh your memory, Python's a dynamic language and C++ is a static language!
+
+#### Python
+
+Python has slicing built right into its list type. Let's take a look, below.
+```python
+>>> myArray = ['testing', 'array', 'indexes']
+>>> print(myArray[0:1])
+['testing']
+```
+
+Cool, right? You, the venerable programmer, can avoid typing out `slice` or something like that!
+
+#### C++ 
+
+First of all, we're going to skip over a bunch of more complex stuff and switch from `std::array`
+to using [`std::vector`](https://en.cppreference.com/w/cpp/container/vector). That's because the C++ Standard Library's Vector class allows us
+to use things like slicing, also built-in (though slightly different, since it's a static language).
+
+```cpp
+// vectorSlice.cpp
+#include <vector>
+#include <iostream>
+#include <string>
+
+int main() {
+    std::vector<std::string> myArray = {"testing", "array", "indexes"};
+    auto myArraySlice = std::vector<std::string>(
+        myArray.begin(), myArray.end() - 1,
+    );
+    std::cout << myArraySlice[0] << "\n";
+}
+```
+
+Compile and run it:
+
+```bash
+c++ vectorSlice.cpp && ./a.out
+testing
+```
+
+## Watch out for index bounds! 
+
+Now back to JavaScript. An easy mistake to make is to
+write a function like `disectChartData` above and feed it
+your array indexes for slicing. 
+
+As an example, let's think of a three element array of strings, e.g. 
+
+```javascript
+let myArray = ['testing', 'array', 'indexes']
+```
+
+And a simple function to return slices of a given array, e.g.
+
+```javascript
+/**
+ * @description Return the sliced array given the start and ending indexes
+ * 
+ * @param { number } start the index from which to slice
+ * @param { number } end the index to which to slice
+ * @param { Array } arr an array of things
+ * 
+ * @returns { Array } stuff
+ */
+function getSlice(start, end, arr) {
+    return arr.slice(start, end) 
+}
+```
+
+Now you might think that calling the function with `getSlice(0, 2, myArray)` would give:
+
+```javascript
+//[myArray[0], myArray[1], myArray[2]]
+['testing', 'array', 'indexes']
+```
+But be careful, as array slicing in JavaScript is different
+that indexing! 
+
+To get all three elements you want to call the function with `getSlice(0, 3, myArray)`. 
+
+> See [the MDN slice docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice) for details.
+
+## In summary 
+
+In this piece I drove you around a couple of different programming language array
+neighborhoods.
+
+Those included
+
+- Python,
+- C++,
+- Go, and 
+- JavaScript.
+
+We briefly mentioned that static and dynamic languages are different types of languages
+and then dug into slicing -- getting a subset of an array. Then we applied slicing arrays in JavaScript, used in the real-world [Promo dashboard library](https://github.com/Tincre/promo-dashboard). Lastly, I demonstrated a pitfall you might encounter using slices versus array indexing.
+
+Let me know what you think in the comments and be sure to give me a follow if you want
+updates on when I post other articles! 
+
+<FollowButton />
+
+👋 Hasta luego!
