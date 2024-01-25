@@ -1,0 +1,111 @@
+---
+title: Simple regex inputs using ChatGPT for Mom
+date: '2024-01-24'
+tags: ['Python', 'Java', 'JavaScript', 'Regex', 'Developer']
+draft: false
+summary: "Do your users keep inputing characters in your input fields that cause failures? Do your developers fail to understand the basic domain requirements of these input fields? Learn how to ask ChatGPT for help!"
+images: ['/static/images/simple-regex-inputs-using-chatgpt-for-mom.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/simple-regex-inputs-using-chatgpt-for-mom.webp"
+  alt="A frustrated office worker typing furiously on a computer with a program resembling Google Search that is glitching and breaking apart."
+  height={1080}
+  width={1920}
+/>
+
+When my lovely wife sent my mother the very cute shot of our dog Lila writhing on her belly from bed this morning, my mother responded with "thanks, I needed that." 
+
+After asking why, she explained that her new system at work was having failures due to breakage from "crazy" input characters. In business, it's common that simple things like a quotation or ambersand character can break legacy workflows. 
+
+Internal developers should know this, however, many don't or don't care to know, creating disastrous problems for the entire pipeline of employees managing, maintaining and improving business processes.
+
+So here's a quick and dirty example of what to ask ChatGPT (4) to help!
+
+### 👋 ChatGPT, help!
+
+**The prompt**
+
+> Create me functions in Java, Python, and JavaScript that return an error _This input field cannot contain anything other than lowercase, uppercase or numerical characters._
+
+#### Its Java programming language response
+
+```java
+public class InputValidator {
+    public static void validateInput(String input) throws IllegalArgumentException {
+        if (!input.matches("^[A-Za-z0-9]*$")) {
+            throw new IllegalArgumentException("This input field cannot contain anything other than lowercase, uppercase or numerical characters.");
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            validateInput("Test123"); // Valid input
+            validateInput("Test@123"); // Invalid input
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+}
+```
+
+#### Its Python response
+
+```python
+def validate_input(input_string):
+    if not input_string.isalnum():
+        raise ValueError("This input field cannot contain anything other than lowercase, uppercase or numerical characters.")
+
+try:
+    validate_input("Test123")  # Valid input
+    validate_input("Test@123")  # Invalid input
+except ValueError as e:
+    print(e)
+```
+
+#### Its JavaScript response after the second try
+
+The original JavaScript response explicitly did not throw an error, which I 
+specified in my original question. Sometimes an LLM will deviate from your
+instructions, just like a person will. 
+
+And when that happens, ask again!
+
+> Rewrite the javascript function above to throw an error using new Error('<error message from above>') where the <error message from above> is the given message. 
+
+```js
+function validateInput(input) {
+    const regex = /^[A-Za-z0-9]*$/;
+    if (!regex.test(input)) {
+        throw new Error("This input field cannot contain anything other than lowercase, uppercase or numerical characters.");
+    }
+    return "Valid input";
+}
+
+try {
+    console.log(validateInput("Test123")); // Valid input
+    console.log(validateInput("Test@123")); // This will throw an error
+} catch (error) {
+    console.error(error.message);
+}
+```
+
+### So what next?
+
+Well for those of you in business its worth studying what some of these
+topics are! Here are some links:
+
+- [Java programming language](https://en.wikipedia.org/wiki/Java_(programming_language))
+- [Python programming language](https://en.wikipedia.org/wiki/Python_(programming_language))
+- [JavaScript programming language](https://www.semrush.com/blog/javascript/)
+- [Regular Expressions (regex) in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions)
+- [Regex in .NET](https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference)
+
+### Check out my company and newsletter
+<BlogNewsletterForm />
+
+✨ Lastly, check out [Tincre](https://tincre.com/) to add a marketing
+agency to your app, site, or platform, or run ads in less than a minute. ✨
