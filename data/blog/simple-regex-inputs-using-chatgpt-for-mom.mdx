@@ -13,8 +13,8 @@ layout: PostLayout
   className="rounded-md shadow-md"
   src="/static/images/simple-regex-inputs-using-chatgpt-for-mom.webp"
   alt="A frustrated office worker typing furiously on a computer with a program resembling Google Search that is glitching and breaking apart."
-  height={1080}
-  width={1920}
+  height={720}
+  width={1260}
 />
 
 When my lovely wife sent my mother the very cute shot of our dog Lila writhing on her belly from bed this morning, my mother responded with "thanks, I needed that." 
@@ -52,6 +52,8 @@ public class InputValidator {
 }
 ```
 
+The `"^[A-Za-z0-9]*$"` above is called Regex, which stands for Regular Expressions, [a language to match patterns in text from 1951!](https://en.wikipedia.org/wiki/Regular_expression)
+
 #### Its Python response
 
 ```python
@@ -66,6 +68,8 @@ except ValueError as e:
     print(e)
 ```
 
+Python has nice built-in support for this use case! 
+
 #### Its JavaScript response after the second try
 
 The original JavaScript response explicitly did not throw an error, which I 
@@ -74,7 +78,7 @@ instructions, just like a person will.
 
 And when that happens, ask again!
 
-> Rewrite the javascript function above to throw an error using new Error('<error message from above>') where the <error message from above> is the given message. 
+> Rewrite the javascript function above to throw an error using new Error('\<error message from above\>') where the \<error message from above\> is the given message. 
 
 ```js
 function validateInput(input) {
@@ -92,6 +96,7 @@ try {
     console.error(error.message);
 }
 ```
+Again we leverage a regular expression.
 
 ### So what next?
 
@@ -105,7 +110,10 @@ topics are! Here are some links:
 - [Regex in .NET](https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference)
 
 ### Check out my company and newsletter
-<BlogNewsletterForm />
+
 
 ✨ Lastly, check out [Tincre](https://tincre.com/) to add a marketing
 agency to your app, site, or platform, or run ads in less than a minute. ✨
+
+<BlogNewsletterForm />
+
