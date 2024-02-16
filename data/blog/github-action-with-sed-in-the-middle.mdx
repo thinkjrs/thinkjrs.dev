@@ -1,0 +1,160 @@
+---
+title: Github Action With Sed In the Middle
+date: '2024-02-16'
+tags: ['GNU/Linux', 'Bash Script', 'CLI', 'Github', 'Sed', 'Github Actions', 'CICD']
+draft: false
+summary: "Do you ever need to modify a string variable inside of a Github Action? This article will show you how to get it done."
+images: ['/static/images/github-action-with-sed-in-the-middle.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/github-action-with-sed-in-the-middle.webp"
+  alt=""
+  height={1322}
+  width={1980}
+/>
+
+If you program or write software for a living I'm willing to bet that you use Github Acions for CI/CD. 
+
+This week I was cleaning up an old actions script that runs Google Lighthouse on web properties for work [@Tincre](https://tincre.com) and needed to modify
+a URL returned by an action step with RegEx.
+
+Here's the setup and how I accomplished that. Hopefully it helps you move quicker and get more done! 
+
+## Modifying a variable
+
+First of all, I needed to keep this script in its current form to fit with our release schedule. I also needed to not modify any other steps, aside from variable names. 
+
+But it was failing due to a URL being changed upstream, which I needed to now
+modify insie the action. Let's dive into what the script does and what I did to rectify the problem.
+
+### Grab a URL from an external service
+
+The script grabs a preview URL from Vercel when our apps build. To do so, we use the vercel-preview-url-action by aaimio. 
+
+This provides a variable we can access with `steps.vercel_preview_url.outputs.vercel_preview_url` in proceeding steps.
+
+### New - Modify the URL using `sed`
+
+Now that URL has some cruft at the beginning and end of which we want to rid ourselves. So let's grab the varable, use `echo` to pipe it to `sed` and some RegEx to remove the cruft. After all that we'll save it to a new variable. 
+
+```yaml
+- name: reformat_vercel_preview_url
+  id: reformat_vercel_preview_url
+  run: |
+    URL=$(echo "${{ steps.vercel_preview_url.outputs.vercel_preview_url }}" | sed -E 's|^(https://)vercel\.live/open-feedback/(.*)(\?.*)$|\1\2|')
+    echo "::set-output name=reformatted_vercel_preview_url::$URL"
+  shell: bash
+``` 
+
+#### What's going on in the `run` command?
+
+Let's break down what's happening in that `run` directive. 
+
+1. We echo the previous URL variable, setting it to the local URL variable, only available in that Github action step. Importantly, this executes the entire command (including `sed`).
+2. We pipe `|` that value to the linux utility `sed`.
+3. We use `sed` to use the RegEx provided to exclude the matches, leaving only the string we'd like.
+4. We use `echo` to set a variable `reformatted_vercel_preview_url` which we can use in the next step.
+
+### Use the modified url in the proceeding step
+
+The proceeding step then uses the variable we set prior to send to lighthouse.
+
+```yaml
+- uses: actions/checkout@v4
+- name: Audit preview URL with Lighthouse
+  id: lighthouse_audit
+  uses: treosh/lighthouse-ci-action@v11
+  with:
+    urls: |
+      ${{ steps.reformat_vercel_preview_url.outputs.reformatted_vercel_preview_url }}
+    uploadArtifacts: true
+    temporaryPublicStorage: true
+ ```
+
+## The complete `lighthouse.yaml` script
+
+For completeness, here's a complete Github Action script to run Google Lighthouse on your Vercel deployments in your Github Pull Requests.
+
+```yaml
+name: Vercel Preview URL Lighthouse Audit
+
+on:
+  issue_comment:
+    types: [edited]
+
+jobs:
+  generate_lighthouse_audit:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add comment to PR
+        id: loading_comment_to_pr
+        uses: marocchino/sticky-pull-request-comment@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          number: ${{ github.event.issue.number }}
+          header: lighthouse
+          message: |
+            Running Lighthouse audit...
+      - name: Capture Vercel preview URL
+        id: vercel_preview_url
+        uses: aaimio/vercel-preview-url-action@v2.2.0
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: reformat_vercel_preview_url
+        id: reformat_vercel_preview_url
+        run: |
+          URL=$(echo "${{ steps.vercel_preview_url.outputs.vercel_preview_url }}" | sed -E 's|^(https://)vercel\.live/open-feedback/(.*)(\?.*)$|\1\2|')
+          echo "::set-output name=reformatted_vercel_preview_url::$URL"
+        shell: bash
+      - uses: actions/checkout@v4
+      - name: Audit preview URL with Lighthouse
+        id: lighthouse_audit
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            ${{ steps.reformat_vercel_preview_url.outputs.reformatted_vercel_preview_url }}
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+      - name: Format lighthouse score
+        id: format_lighthouse_score
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const result = ${{ steps.lighthouse_audit.outputs.manifest }}[0].summary
+            const links = ${{ steps.lighthouse_audit.outputs.links }}
+            const formatResult = (res) => Math.round((res * 100))
+            Object.keys(result).forEach(key => result[key] = formatResult(result[key]))
+            const score = res => res >= 90 ? '🟢' : res >= 50 ? '🟠' : '🔴'
+            const comment = [
+                `⚡️ [Lighthouse report](${Object.values(links)[0]}) for the changes in this PR:`,
+                '| Category | Score |',
+                '| --- | --- |',
+                `| ${score(result.performance)} Performance | ${result.performance} |`,
+                `| ${score(result.accessibility)} Accessibility | ${result.accessibility} |`,
+                `| ${score(result['best-practices'])} Best practices | ${result['best-practices']} |`,
+                `| ${score(result.seo)} SEO | ${result.seo} |`,
+                `| ${score(result.pwa)} PWA | ${result.pwa} |`,
+                ' ',
+                `*Lighthouse ran on [${Object.keys(links)[0]}](${Object.keys(links)[0]})*`
+            ].join('\n')
+             core.setOutput("comment", comment);
+      - name: Add comment to PR
+        id: comment_to_pr
+        uses: marocchino/sticky-pull-request-comment@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          number: ${{ github.event.issue.number }}
+          header: lighthouse
+          message: |
+            ${{ steps.format_lighthouse_score.outputs.comment }}
+```
+
+I hope this helped and/or you enjoyed the write up. 
+
+<BlogNewsletterForm />
