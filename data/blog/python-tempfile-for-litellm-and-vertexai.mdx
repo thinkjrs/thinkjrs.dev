@@ -1,0 +1,160 @@
+---
+title: Python Tempfile For LiteLLM and Vertex AI
+date: '2024-03-13'
+tags: ['Python', 'GCP', 'Vertex AI', 'Tempfile', 'GcloudAuth']
+draft: false
+summary: Use Python's tempfile for saving Google Cloud credentials locally when you call Vertex AI endpoints with LiteLLM
+images: ['/static/images/python-tempfile-for-litellm-and-vertexai.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/python-tempfile-for-litellm-and-vertexai.webp"
+  alt="A teenager in a hoodie in front of a laptop on a dark and scary backdrop."
+  height={800}
+  width={1400}
+/>
+
+I previously [wrote about authenticating Google Cloud services](/blog/gcp-auth-with-custom-credentials) with a custom `Credentials` object from their auth library.
+
+This is a follow-up on how I use that with the remarkable [LiteLLM](https://litellm.vercel.app) library to query Google's Vertex AI endpoints, using the `tempfile` module available in Python.
+
+## Motivation
+
+As highlighted in my auth article, it is generally unsafe to store your service accounts on disk for deployed services.
+
+The good news is that Python has a module called [`tempfile`](https://docs.python.org/3/library/tempfile.html#examples) you can use to create temporary files and directories that disappear after their context is over.
+
+> Yes, you should use context managers in Python. Here's some [candy from the official docs](https://docs.python.org/3/reference/compound_stmts.html#with) on `with` statements.
+
+## Digging in 
+
+Let's install dependencies and then go through each section of the code.
+
+### Dependencies 
+
+Install the following dependencies:
+
+```
+pip install litellm google-cloud-aiplatform
+```
+
+### Add the imports
+
+We'll need to use `tempfile`, `os`, and `litellm`. Let's import those.
+
+```python
+import tempfile
+import os
+import litellm
+litellm.vertex_project = "blah"
+litellm.vertex_location = "us-central1"
+```
+
+While we're at it we also set some requirements for LiteLLM we'll need later. Make sure your GCP project and location are what you have in your project.
+
+### Using `tempfile`
+
+The tempfile module "creates temporary files and directories." It works on all platforms and provides context managers to securely destroy leftovers outside of the temporary file or directory context.
+
+Here, we run our code logic in the context of the temporary directory and credentials file created within it.
+
+```python
+with tempfile.TemporaryDirectory() as temp_directory:
+```
+Using the `with` directive to manage context, we create `temp_directory` leveraging the `tempfile.TemporaryDirectory` class. 
+
+Next, we'll grab our JSON string and save it as a file inside `temp_directory`, making sure to record that path as `temp_file_path`.
+
+```python
+    service_account_json_string: str = (
+        os.getenv("GCP_APPLICATION_DEFAULT_CREDENTIALS") or ""
+    )
+    temp_file_path = os.path.join(temp_directory, "service_account.json")
+```
+
+Lastly, we'll write that file to the temporary "disk" space we created.
+
+```python
+    # Write the JSON string to the temporary file
+    with open(temp_file_path, "w") as temp_file:
+        temp_file.write(service_account_json_string)
+```
+
+Now, we've got our credentials saved at the temporary file path, `temp_file_path`.
+
+### Calling the model
+
+To use our credentials and call the model we need to set that file path to an environment variable `GOOGLE_APPLICATION_CREDENTIALS`. 
+
+```python
+    # Set the LiteLLM environment variable https://litellm.vercel.app/docs/providers/vertex
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_file_path
+```
+
+Now we can call our model, which is super simple with the LiteLLM library.
+
+```python
+    # Call the model which creates a Credential object using Google auth under the hood within LiteLLM
+    response = litellm.completion(
+        model="gemini-pro",
+        messages=[
+            {
+                "role": "user",
+                "content": "write me a joke about linkedin legends",
+            }
+        ],
+    )
+    # "Why did the LinkedIn legend get lost in the woods?"
+    # "Because they were too busy posting about their 'hustle' and 'grind' to pay attention to where they were going."
+```
+
+Voilà!
+
+## The full code 
+
+Here's the full snippet you can copy-pasta to get up and running very
+quickly.
+
+```python
+import tempfile
+import os
+import litellm
+litellm.vertex_project = "blah"
+litellm.vertex_location = "us-central1"
+
+with tempfile.TemporaryDirectory() as temp_directory:
+    service_account_json_string: str = (
+        os.getenv("GCP_APPLICATION_DEFAULT_CREDENTIALS") or ""
+    )
+    temp_file_path = os.path.join(temp_directory, "service_account.json")
+
+    # Write the JSON string to the temporary file
+    with open(temp_file_path, "w") as temp_file:
+        temp_file.write(service_account_json_string)
+
+    # Set the LiteLLM environment variable https://litellm.vercel.app/docs/providers/vertex
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_file_path
+    
+    # Call the model which creates a Credential object using Google auth under the hood within LiteLLM
+    response = litellm.completion(
+        model="gemini-pro",
+        messages=[
+            {
+                "role": "user",
+                "content": "write me a joke about linkedin legends",
+            }
+        ],
+    )
+```
+## In summary
+
+Hopefully this clarified how to save Google application credentials into a temporary file safely.
+
+Normally, at my firm [Tincre](https://tincre.com), we leverage custom credentials objects for GCP services but LiteLLM doesn't yet support this. I have an [open PR ready for merging](https://github.com/BerriAI/litellm/pull/2463) to make this happen.
+
+<BlogNewsletterForm />
+
+✨ If you want to add a marketing agency to your business or just run the easiest ads anywhere, hit up [Tincre](https://tincre.com) ✨
