@@ -170,6 +170,9 @@ Here's an outline of the API, broken down programmatically.
   logger.debug("This is a debug message");
   ```
 
+#### Credits
+
+This was adapted to typescript from the simple strategy outlined in [this article by Michael Auderer](https://www.loggly.com/blog/best-practices-for-client-side-logging-and-error-handling-in-react/).
 
 ### Summary
 Each method only logs to the console if the environment variable `NODE_ENV` is not set to `"production"`, helping keep production logs clean. The format of each log includes a timestamp followed by the log level and the provided message.
