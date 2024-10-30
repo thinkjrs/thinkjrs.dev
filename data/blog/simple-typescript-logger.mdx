@@ -1,0 +1,179 @@
+---
+title: A Minimalist Logger for Cleaner Development
+date: '2024-10-30'
+tags: ['TypeScript', 'JavaScript', 'React', 'Tincre', 'Software']
+draft: false
+summary: "Hate those pesky log messages in your production apps? Here's what we do at Tincre to mangle our logs and more."
+images: ['/static/images/a-minimalist-logger-for-cleaner-development.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/a-minimalist-logger-for-cleaner-development.webp"
+  alt="A white, old-school alarm clock in the middle of a dual-toned pink (left) and blue (right) image to signify what @thinkjrs could quickly find that visually represented the program 'cron'."
+  height={928}
+  width={1232}
+/>
+
+# A Minimalist Logger for Cleaner Development
+
+In a world where we write code in milliseconds and bugs lurk in the corners of infinite dynamic loops, logging is our first line of defense.
+
+But the logging tools that come pre-built are usually way over-engineered and the regular JavaScript `console`, too basic, is either spamming production or leaving out key details when we need them most.
+
+That’s why we use a minimalist logger I built at [Tincre](https://tincre.com?ref=thinkjrs.dev) – just enough to keep us informed during development, yet clean enough to step out of the way in production.
+
+This logger only logs when it matters – in non-production environments – with timestamps, clear labels, and no extra overhead.
+
+Whether it’s logging an error, a quick warning, or just a helpful status message, it’s built to work in the background without cluttering your final product.
+The API for `logger` consists of three methods for logging messages in different levels (`debug`, `log`, `error`, `warn`). 
+
+## The code
+
+Let's jump right in to some code for our logger. At my firm [Tincre](https://tincre.com) we use this in our React apps.
+
+```typescript
+/**
+ * @module Logger
+ *
+ * This module provides a simple logging utility for the application. It includes
+ * functions to log messages of different severity levels: debug, log, error, and warn.
+ * The logging functions output messages to the console, but only when the application
+ * is not running in a production environment. This is controlled by checking the
+ * `NODE_ENV` environment variable.
+ *
+ * The logger is designed to help developers track the flow of the application and
+ * diagnose issues during development and testing. By suppressing log output in
+ * production, it helps to keep the console output clean and avoids exposing potentially
+ * sensitive information.
+ *
+ * Usage:
+ *
+ * Import the logger and use the appropriate method to log messages:
+ *
+ * ```typescript
+ * import { logger } from './logger';
+ *
+ * logger.log('This is a log message');
+ * logger.error('This is an error message');
+ * logger.warn('This is a warning message');
+ * logger.debug('This is a debug message');
+ * ```
+ *
+ * Each log message is prefixed with a timestamp and a label indicating the log level.
+ *
+ * Functions:
+ * - `logMessage(message: string): void`: Logs a standard message.
+ * - `errorMessage(message: string): void`: Logs an error message.
+ * - `warnMessage(message: string): void`: Logs a warning message.
+ * - `debugMessage(message: string): void`: Logs a debug message.
+ *
+ * The logger object aggregates these functions for easy access.
+ */
+
+export const logger = {
+  debug: debugMessage,
+  log: logMessage,
+  error: errorMessage,
+  warn: warnMessage,
+};
+
+/**
+ * Logs a message to the console if the NODE_ENV is not set to "production".
+ *
+ * @param message - The message to be logged.
+ * @returns {void}
+ */
+function logMessage(message: string): void {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[LOG] ${new Date().toISOString()}: ${message}`);
+  }
+}
+
+/**
+ * Logs an error message to the console if the NODE_ENV is not set to "production".
+ *
+ * @param message - The error message to be logged.
+ * @returns {void}
+ *
+ * @example
+ * errorMessage("Failed to connect to the database");
+ */
+function errorMessage(message: string): void {
+  if (process.env.NODE_ENV !== "production") {
+    console.error(`[ERROR] ${new Date().toISOString()}: ${message}`);
+  }
+}
+
+/**
+ * Logs a warning message to the console if the NODE_ENV is not set to "production".
+ *
+ * @param message - The warning message to be logged.
+ * @returns {void}
+ */
+function warnMessage(message: string): void {
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(`[WARN] ${new Date().toISOString()}: ${message}`);
+  }
+}
+
+/**
+ * Logs a debug message to the console if the NODE_ENV is not set to "production".
+ *
+ * @param message - The debug message to be logged.
+ * @returns {void}
+ */
+function debugMessage(message: string): void {
+  if (process.env.NODE_ENV !== "production") {
+    console.debug(`[DEBUG] ${new Date().toISOString()}: ${message}`);
+  }
+}
+```
+## The API 
+
+Here's an outline of the API, broken down programmatically. 
+
+### 1. `logger.log(message: string): void`
+- **Purpose**: Logs a general message if the environment is not in production.
+- **Parameter**:
+  - `message` (string): The message you want to log.
+- **Usage**:
+  ```typescript
+  logger.log("This is a log message");
+  ```
+
+### 2. `logger.error(message: string): void`
+- **Purpose**: Logs an error message if the environment is not in production.
+- **Parameter**:
+  - `message` (string): The error message to log.
+- **Usage**:
+  ```typescript
+  logger.error("This is an error message");
+  ```
+
+### 3. `logger.warn(message: string): void`
+- **Purpose**: Logs a warning message if the environment is not in production.
+- **Parameter**:
+  - `message` (string): The warning message to log.
+- **Usage**:
+  ```typescript
+  logger.warn("This is a warning message");
+  ```
+### 4. `logger.debug(message: string): void`
+- **Purpose**: Logs a debug message if the environment is not in production.
+- **Parameter**:
+  - `message` (string): The debug message to log.
+- **Usage**:
+  ```typescript
+  logger.debug("This is a debug message");
+  ```
+
+
+### Summary
+Each method only logs to the console if the environment variable `NODE_ENV` is not set to `"production"`, helping keep production logs clean. The format of each log includes a timestamp followed by the log level and the provided message.
+
+<BlogNewsletterForm />
+
+
