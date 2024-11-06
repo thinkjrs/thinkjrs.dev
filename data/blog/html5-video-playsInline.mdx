@@ -1,0 +1,63 @@
+---
+title: HTML5 Video playsInline
+date: '2024-11-06'
+tags: ['TypeScript', 'JavaScript', 'HTML5', 'Web App Development']
+draft: false
+summary: "It turns out that the HTML5 video spec has an important attribute for mobile. Read more to dive into how that can affect your applications on mobile."
+images: ['/static/images/html5-video-playsInline.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/html5-video-playsInline.webp"
+  alt="An HDR image of orange clay stick figures playing on a single string. They are delicately walking atop the line, joyfully playing."
+  height={904}
+  width={1200}
+/>
+
+While squashing bugs in our new [Tincre](https://tincre.com) integration app today, I stumbled upon an issue flagged by our ever-vigilant team member, Vale. On mobile, the slick "here's what's happening" video that appears after a user submits a campaign just wasn’t showing up with the inline styling I ~~pro~~brogrammed.
+
+Oddly enough, everything worked perfectly fine on desktop browsers.
+
+Naturally, I dove into the app, debugging the labyrinth, testing on Android and iOS, and across Firefox, Chrome, and Safari. No dice. It was broken. Cue the classic "What’s going on here?" moment. Drumroll, please.
+
+## `playsInline`
+
+As it turns out, the culprit was the humble yet critical [`playsInline`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video#playsinline) attribute in HTML5 `<video>` tags. Mobile browsers interpret video playback differently, and `playsInline` is there to manage that.
+
+The `playsInline` attribute is essential for mobile because it signals the browser to keep the video embedded within the webpage, instead of hijacking the screen in fullscreen mode.
+
+Here’s why it matters.
+
+### 1. Default fullscreen behavior on mobile
+
+Mobile browsers tend to default to fullscreen video playback for an “optimized” viewing experience, minimizing distractions and making the most of the limited screen space. But this default behavior can throw a wrench into your app’s layout and design.
+
+Adding the `playsInline` attribute overrides this behavior, ensuring the video stays right where you intended—embedded within its container on the page.
+
+### 2. Consistency with layout
+
+Without `playsInline`, your carefully constructed layout can be thrown into chaos as videos leap into fullscreen when played on mobile devices. This disruption breaks the flow and user experience you’ve worked so hard to craft.
+
+Using `playsInline` keeps videos playing in-page, preserving your app’s design integrity and seamless user interaction.
+
+### 3. Better user interaction
+
+Fullscreen videos on mobile can be jarring. They take over the screen and disconnect users from the rest of the page, preventing them from interacting with other elements or viewing additional content.
+
+With `playsInline`, users can watch videos without sacrificing their ability to browse, scroll, or engage with the rest of the app. It’s the difference between a smooth, integrated experience and one that feels like a detour.
+
+### 4. Autoplay considerations
+
+There’s another layer here: autoplay. Some mobile browsers restrict autoplay behavior unless `playsInline` is specified. When a video is muted and paired with the `playsInline` attribute, it’s more likely to autoplay without needing a tap from the user.
+
+## In summary
+
+The `playsInline` attribute is a small but mighty addition that keeps video playback within the page on mobile devices, preventing unwanted fullscreen takeovers. It helps maintain your layout, ensures consistent user interaction, and preserves the design integrity of your app.
+
+So, next time your mobile videos are behaving like they have a mind of their own, remember to check if `playsInline` is missing. It just might be the hero your app needs.
+<BlogNewsletterForm />
+
+
