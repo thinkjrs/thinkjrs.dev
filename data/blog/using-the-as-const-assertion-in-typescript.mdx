@@ -1,0 +1,195 @@
+---
+title: Using The as const Assertion In TypeScript
+date: '2024-12-19'
+tags: ['TypeScript', 'Language features', 'Software', 'Development', 'Developer tooling']
+draft: false
+summary: ""
+images: ['/static/images/using-the-as-const-assertion-in-typescript.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/using-the-as-const-assertion-in-typescript.webp"
+  alt="An artistically styled image of an empty jar in a beautiful forest, lost but extant."
+  height={928}
+  width={1232}
+/>
+
+While working on a new email templating system for our Promo App - the one that powers [b00st.com](https://b00st.com) - I came across an amazing feature of TypeScript, _const assertions_. 
+
+This nifty feature introduced in [TypeScript 3.4](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-4.html) gives us developers a way to pass along much richer information to the caller \(among other things\). You know, that stuff in your editor that actually allows you to get shit done, e.g. code, rather than read documentation.
+
+## The motivation
+I had built a type that has a generator function for a type, a.k.a. factory function for those of you familiar with [GOF](https://en.wikipedia.org/wiki/Design_Patterns) design patterns. I like to use these when templating types that are static-ish, i.e. a type for an object such as:
+
+```ts
+const emailSchema = {
+  myKnownFixedName: {
+    templateId: "blah-blah-blah-id",
+    data: (inputData) => ({...outputData}),
+  }
+}
+```
+That's a useful API because it let's me do things like access the object by name and then generate its data on the fly, because that part might be changing. 
+
+For example, let's say we have an email table in our database that stores some information about ad campaigns as JSON. The above let us interface with said data easily in our code, e.g. 
+
+```ts
+const emailCampaignData = emailsSchema.myKnownFixedName.data({...someCampaignData})
+
+// call db to save email
+// call sendgrid to send email
+sendgrid(templateId, emailCampaignData)
+```
+> Obviously the code above isn't real - don't try to copy-pasta, it won't work!
+
+Now the downside with this approach is that I have to know that `someCampaignData` and the `data` function input properties in `emailsSchema.myKnownFixedName` are shared. And some of these might be dynamic per type of emailSchema fixed name, but static. And what if I want `myKnownFixedName` to be something I don't know?
+
+Enter TypeScript's `as const` const assertion. Drumroll, please.
+## Literal inference with TypeScript
+
+We all know that we can assert a literal - rather than just a type. Simply use the literal in your type, e.g.
+
+```ts
+const req = { href: "https://b00st.com", method: "GET" as "GET" };
+```
+When you dive for information on `method` TypeScript will show you that it's `GET` not a literal! This is useful here - there aren't that many [HTTP request methods (9?)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods). 
+
+For those of you curious, [here are the docs on TypeScript literal inference](https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#literal-inference). What I didn't know is that we can convert the entire object to a literal using `as const`. 
+
+### A real-life example
+
+So let's ditch this pseudo-code and actually look at something we're using at [Tincre](https://tincre.com). This is the basic setup for our email templates which we send through Sendgrid using Google Cloud Tasks. 
+
+Here we'll dig into a template clients receive when they submit a campaign. 
+
+**What it looks like for clients:**
+<Image
+  className="rounded-md shadow-md"
+  src="https://res.cloudinary.com/thinkjrs-dev/image/upload/v1734547003/thinkjrs.dev/Screenshot_from_2024-12-18_13-35-39_dxvyg5_pju3w3.webp"
+  alt="A snippet of the b00st.com Campaign Submission Email in Sendgrid's dashboard"
+  height={562}
+  width={1200}
+/>
+
+#### The code `src/lib/email-templates.ts`
+
+The example above is for b00st.com but our app serves other brands, completely white-labelled. 
+
+Here's a shortened version of the module that powers our app emails:
+```ts
+// email-templates.ts
+export type TemplateDataMap = {
+  "promo-campaign-submitted": {
+    adTitle: string;
+    firstName: string;
+    brandUrl: string;
+    pid: string;
+  };
+};
+
+export type EmailTemplate<T extends keyof TemplateDataMap> = {
+  templateId: string;
+  data: (data: TemplateDataMap[T]) => TemplateDataMap[T];
+};
+
+// Utility function for creating templates
+const createEmailTemplate = <T extends keyof TemplateDataMap>(
+  template: EmailTemplate<T>
+): EmailTemplate<T> => template;
+
+export const EMAIL_TEMPLATES = {
+  "promo-campaign-submitted": createEmailTemplate({
+    templateId: "d-f865e79a9d694d00aa724f96c18bee33",
+    data: (data) => ({
+      adTitle: data.adTitle,
+      firstName: data.firstName,
+      brandUrl: data.brandUrl,
+      pid: data.pid,
+    }),
+  }),
+} as const;
+
+// Type inference for accessing templates
+export type EmailTemplates = typeof EMAIL_TEMPLATES;
+```
+Callers can use it like this:
+```ts
+   const campaignSubmittedTemplate = EMAIL_TEMPLATES["promo-campaign-submitted"];
+   // Correct usage with type safety
+   const result = campaignSubmittedTemplate.data({
+     adTitle: "Big Sale This Weekend!",
+     firstName: "John",
+     brandUrl: "b00st.com",
+     pid: "12345678",
+   });
+   console.debug(result);
+   // Incorrect usage results in a TypeScript error:
+   // promoTemplate.data({ invalidField: "Oops!" }); // Error
+```
+
+### Benefits of `as const` here
+
+-   **Preserves Specificity**: We want to treat a potentially unknown `name` as a literal value (e.g., `"promo-campaign-submitted"`) to match the `TemplateDataMap` key and enforce stricter type checks.
+-   **Ensures Immutability**: It prevents accidental modification of `EMAIL_TEMPLATES` at runtime, for anything other than `data`, for which we control the parameters being created using our factory.
+-   **Improves Developer Experience**: Auto-completion and stricter type safety make the code easier to work with (key point) and vastly less error-prone.
+#### How does it look like with `as const`? 
+Look at how TypeScript will infer our code. It's gorgeous. And really useful.
+```ts
+{
+  "promo-campaign-submitted": {
+    templateId: "d-f865e79a9d694d00aa724f96c18bee33"; // Preserved as literal type
+    data: (data: { adTitle: string; firstName: string; brandUrl: string; pid: string }) => { ... };
+  };
+}
+```
+
+Did I mention how useful this is? I can see all the associated data from the template right in my editor. This is a copy-once-from-Sendgrid situation and then avoid their platform for another month. 🎉
+
+#### What happens without `as const`?
+
+Consider this example without `as const`:
+
+```ts
+export const EMAIL_TEMPLATES = {
+  "promo-campaign-submitted": {
+    templateId: "d-f865e79a9d694d00aa724f96c18bee33",
+    data: (data: {
+      adTitle: string;
+      firstName: string;
+      brandUrl: string;
+      pid: string;
+    }) => data,
+  },
+};
+```
+
+TypeScript will infer the above as
+
+```ts
+{
+  "promo-campaign-submitted": {
+    name: string; // Generalized to string
+    templateId: string; // Generalized to string
+    data: (data: { adTitle: string; firstName: string; brandUrl: string; pid: string }) => { ... };
+  };
+}
+```
+
+No bueno! I certainly know that both `templateId` is always the same string literal. What I actually want is the value of the literal - which we get with `as const` and we don't, without.
+
+## In summary
+
+The `as const` assertion is a really useful tool to enhance the developer experience in using our modules and types, while ensuring immutability (read-only) for some fixed-literals.
+
+For more detailed information on `as const`, you can refer to the official docs:
+
+-   [**TypeScript 3.4 Release Notes**](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-4.html): This section introduces `const assertions` and explains how `as const` works to prevent literal types from being widened, making object literals readonly, and array literals readonly tuples.
+       
+-   [**Everyday Types**](https://www.typescriptlang.org/docs/handbook/2/everyday-types.html): This part of the handbook discusses common types and includes a brief mention of `as const` in the context of literal inference, to which I link, above.
+
+I hope you enjoyed this one and found it useful. Now go code your heart out! 
+
+<BlogNewsletterForm />
