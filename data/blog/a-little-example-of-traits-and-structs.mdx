@@ -1,0 +1,127 @@
+---
+title: A Little Example of Using Traits and Structs
+date: '2025-01-13'
+tags: ['Rust', 'Traits', 'Code', 'Software', 'Structs']
+draft: false
+summary: "See Rust's trait and struct features work hand-in-hand by modeling the entire universe."
+images: ['/static/images/a-little-example-of-traits-and-structs.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/a-little-example-of-traits-and-structs.webp"
+  alt="A strong man looking at a modular structure under construction in a class courtyard."
+  height={800}
+  width={1200}
+/>
+
+This post outlines a small example of using traits and structs. It's a simplified version of a chapter in my forthcoming book on Rust.
+
+Let's use the `Anything` trait to store a `Star` in the `Universe`.
+
+## `Universe` struct
+
+We'll make ourselves a `Universe` struct with a single field, `things` that holds a dynamic number of objects.
+
+The struct essentially serves as a container that can hold a collection of diverse objects, unified by the requirement that they implement the `Anything` trait. On `things` it uses a `Vec<Box<dyn Anything>>` to store these objects, leveraging Rust’s dynamic dispatch to manage heterogeneity at runtime.
+
+```rust
+pub struct Universe {
+    things: Vec<Box<dyn Anything>>,
+}
+```
+
+### Adding some methods
+
+Let's give our callers a simple API with things like `Universe::new`, `add_things` and `list_things`.
+
+```rust
+impl Universe {
+    pub fn new() -> Self {
+        Universe { things: Vec::new() }
+    }
+
+    pub fn add_things<T: Anything + 'static>(&mut self, thing: T) {
+        self.things.push(Box::new(thing));
+    }
+
+    pub fn list_things(&self) -> Vec<String> {
+        self.things.iter().map(|thing| thing.describe()).collect()
+    }
+}
+```
+
+Next we'll add our trait which allows for objects of different types to be stored dynamically on the heap at runtime.
+
+## `Anything` trait
+
+Our trait will have a single trait method `describe` that returns a string. This will require implementers to implement a `describe` method so we can do things like print out what is the type of the actual object.
+
+```rust
+pub trait Anything {
+    fn describe(&self) -> String;
+}
+```
+
+Now our callers can store literally anything in the `Universe` `things` field, as long as they implement `Anything`.
+
+Next we'll take a look at how exactly to do that.
+
+## Making a `Star`
+
+First off we'll create a `Star` struct with a single field `name`.
+
+```rust
+struct Star {
+    name: String,
+}
+```
+
+And let's now give it the standard `new` interface.
+
+```rust
+impl Star {
+    pub fn new(name: &str) -> Star {
+        Star {
+            name: name.to_string(),
+        }
+    }
+}
+```
+
+Now let's implement the `Anything trait` for `Star` so we can store it in `Universe`.
+
+```rust
+impl Anything for Star {
+    fn describe(&self) -> String {
+        format!("{}", self.name)
+    }
+}
+```
+
+Now we're ready to use all this. Let's create a `Universe` and add a `Star`!
+
+```rust
+fn main() {
+    let mut universe = Universe::new();
+    universe.add_things(Star::new("Olivia Rodgrido"));
+
+    for description in universe.list_things() {
+        println!("{}", description);
+    }
+}
+```
+
+Wait, you didn't think we were going to make a stellar body, did you?
+
+## Recap
+
+We first create some structs which help us group our data together. A `Universe` holds `things`, such as a `Star`. We could also create a struct `Mansion` with different properties from `Star`, such as `number_of_gardeners` and `cost_per_tennis_court`.
+
+Because we implement the common trait `Anything` that makes sure our diverse types like `Star` and `Mansion` provide a `describe` method, so they can behave uniformly.
+
+Using `Box<dyn Anything>` is used to enable dynamic dispatch, allowing our `Universe` collection to hold objects of different types, like `Star` and `Anything`, that implement the same trait.
+
+<BlogNewsletterForm />
