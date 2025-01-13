@@ -120,8 +120,8 @@ Wait, you didn't think we were going to make a stellar body, did you?
 
 We first create some structs which help us group our data together. A `Universe` holds `things`, such as a `Star`. We could also create a struct `Mansion` with different properties from `Star`, such as `number_of_gardeners` and `cost_per_tennis_court`.
 
-Because we implement the common trait `Anything` that makes sure our diverse types like `Star` and `Mansion` provide a `describe` method, so they can behave uniformly.
+Because we implement the common trait `Anything` that makes sure our diverse types like `Star` and `Mansion` provide a `describe` method, they behave uniformly.
 
-Using `Box<dyn Anything>` is used to enable dynamic dispatch, allowing our `Universe` collection to hold objects of different types, like `Star` and `Anything`, that implement the same trait.
+Using `Box<dyn Anything>` is used to enable dynamic dispatch, allowing our `Universe` collection to hold objects of different types, like `Star` and `Mansion`, that implement the same `Anything` trait.
 
 <BlogNewsletterForm />
