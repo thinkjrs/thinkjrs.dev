@@ -1,0 +1,423 @@
+---
+title: Rust and Nextjs with WebAssembly
+date: '2025-01-14'
+tags: ['Rust', 'Next.js', 'WebAssembly', 'Software', 'Web']
+draft: false
+summary: "A quick and easy way to integrate Rust code into your Next.js applications"
+images: ['/static/images/rust-and-nextjs-with-webassembly.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/rust-and-nextjs-with-webassembly.webp"
+  alt="A futuristic sea shore overlooking rolling waves with a planet and two moons.
+  height={800}
+  width={1200}
+/>
+
+Performance in web applications is a pre-conditioned expectation from users
+in modern user interfaces. Unfortunately, for some types of application
+functionality, we're left with slow and hardly-usable functionality
+when implementing those in JavaScript alone.
+
+Fortunately, we have a wonderful technology called WebAssembly which
+all major browsers support, as of 2025. This technology is a low-level,
+binary instruction format designed to run programs efficiently, complementing JavaScript.
+
+WebAssembly serves as a portable compilation target for high-level programming
+languages like C, C++, and Rust, enabling programs to run at
+near-native speed in a browser. 
+
+If this feels like the future, you’re already living it.
+
+## General project setup
+
+We need to build our Next.js app and then somehow call our Rust functions.
+
+Here's how we'll knock that out:
+
+1. Create the project using `create-next-app`
+2. Write the Rust library crate
+3. Build the Rust library
+4. Add a React component to call our Rust library
+5. Add some interface sugar
+6. Grab a tasty beer, coffee or bland glass of water
+
+### Create our app
+
+Hop over to your terminal and let's create our app.
+
+```sh
+npx create-next-app
+```
+
+Follow the prompts using the defaults - app directory, tailwind, eslint,
+typescript, default module paths and avoid turbopack.
+
+I named the app `next-wasm-rust` - you can name it whatever you want.
+
+## Using Rust in Next.js
+
+Now it's time to create the Rust portion of our app that will calculate
+fibonacci numbers.
+
+Unfortunately, getting a setup that will work well in modern React
+and Next.js is somewhat dificult.
+
+### `wasm-bindgen` to the rescue
+
+For our purposes, we will use a fantastic tool called `wasm-bindgen`,
+which is a Rust library and toolchain that facilitates the interoperability
+between Rust and JavaScript (and other WebAssembly host environments).
+
+In short, it helps us write WebAssembly modules in Rust and interact with
+JavaScript code seamlessly.
+
+> There are other methods to interface with WebAssembly modules, however, I
+> was entirely unable to get anything else working with the Next.js app router
+> and Webpack 5.
+
+### Building the Rust `fibonacci` lib
+
+Inside of our Next.js app, use cargo to create the library.
+
+```rust
+cargo new fibonacci --lib
+```
+
+And now add the following to your `Cargo.toml`:
+
+```toml
+[package]
+name = "fibonacci"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wasm-bindgen = "0.2"
+
+[lib]
+crate-type = ["cdylib"]
+```
+
+Notice our dependencies and crate-type. These are critical.
+
+### Recursive `fibonacci`
+
+If you're familiar with the Fibonacci problem set from your algorithms
+courses, throw away all that matrix and other goodness for now. We're trying
+to calculate this slowly, to show how powerful WASM can be!
+
+In your `src/lib.rs`:
+
+```rust
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn fibonacci(n: u32) -> u32 {
+    match n {
+        0 => 0,
+        1 => 1,
+        _ => fibonacci(n - 1) + fibonacci(n - 2),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let result = fibonacci(0);
+        assert_eq!(result, 0);
+    }
+}
+```
+
+Okay, save that file and make sure everything runs.
+
+```sh
+cargo test
+```
+
+### Building our library
+
+Now we'll use the `wasm-pack` tool to build our library for use in our Next.js
+application.
+
+Simply execute the following from within your `fibonacci` Rust library.
+
+```sh
+wasm-pack build --target web --out-dir ../src/app/pkg
+```
+
+We are telling `wasm-pack` to output the build into our `app` directory
+for our Next.js application. This is important.
+
+> You can get [wasm-pack here](https://rustwasm.github.io/wasm-pack/installer/) if needed.
+
+Now you should have a directory in `src/app/` named `pkg` containing the following:
+
+```sh
+src/app/pkg
+├── fibonacci.d.ts
+├── fibonacci.js
+├── fibonacci_bg.wasm
+├── fibonacci_bg.wasm.d.ts
+└── package.json
+```
+
+#### Add a build command to `package.json` for your Next.js app
+
+Now let's add a build command to our `package.json` so that we
+don't have to rock this over and over.
+
+```json
+  "scripts": {
+    "dev": "next dev",
+    "build:fibonacci": "cd fibonacci && wasm-pack build --target web --out-dir ../src/app/pkg && cd -",
+    "build": "yarn build:fibonacci && next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+```
+
+Lastly, update your eslint configuration file to avoid some TypeScript errors
+over which we have no control:
+
+```js
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  // WASM-specific rule adjustments
+  {
+    files: ["src/app/pkg/fibonacci.js"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+];
+```
+
+## Add the `Fibonacci` component
+
+Now it's time to build the actual component we'll call in our
+page rendering.
+
+I like to put all my components in their own directory:
+
+```sh
+mkdir src/components
+```
+
+And then name the component `Fibonacci.tsx`. This will all run in the
+browser so make sure to put the `use client` directive at the top.
+
+```ts
+"use client";
+import { useEffect, useState } from "react";
+import type { InitInput, InitOutput } from "@/app/pkg/fibonacci";
+import init from "@/app/pkg/fibonacci";
+```
+
+We'll need a few imports so make sure you've added those in the steps above.
+
+Next up is creating our WebAssembly object:
+
+```ts
+const WebAssembly = {
+  fibonacci: null as ((n: number) => number) | null,
+  init: async (input?: InitInput): Promise<void> => {
+    const wasm: InitOutput = await init(input);
+    WebAssembly.fibonacci = wasm.fibonacci;
+  },
+};
+```
+
+We'll call this later, having stored initialized functionality on this
+object. Now let's add the component itself.
+
+```tsx
+export default function Fibonacci() {
+  const [result, setResult] = useState<number | null>(null);
+  const [fibonacciInput, setFibonacciInput] = useState<number | null>(null);
+  return null;
+}
+```
+
+We'll need to store the result of the fibonacci call in `result` and
+we'll take some user input for which fibonacci number to calculate, storing
+that as well.
+
+> This is called a controlled input in React lingo.
+
+Now let's update the `null` return value. We'll add some functions to call our
+`fibonacci` function shortly.
+
+```tsx
+<div>
+  <h2 className="text-sm/6 font-medium text-gray-400">
+    Calculate a fibonacci number
+  </h2>
+  <div className="grid sm:grid-cols-2 sm:gap-x-6 gap-y-4 sm:gap-y-0">
+    <input
+      type="number"
+      onChange={(e) => setFibonacciInput(parseInt(e.currentTarget.value))}
+      className="w-full px-4 py-2 bg-indigo-100 focus:bg-indigo-50 text-indigo-950 border rounded-md focus:ring-2 focus:ring-indigo-500"
+    />
+    <button
+      type="button"
+      className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 sm:w-1/2"
+      onClick={() =>
+        typeof fibonacciInput === "number"
+          ? handleFibonacciCalculation(fibonacciInput)
+          : null
+      }
+    >
+      Get result
+    </button>
+    <p className="mt-4">
+      <span className="text-4xl font-semibold tracking-tight text-white">
+        {typeof result === "number" ? result.toLocaleString() : null}
+      </span>
+    </p>
+  </div>
+</div>
+```
+
+Okay, now we need to add the `handleFibonacciCalculation` function and
+another one to initialize the WebAssembly setup.
+
+In the body of your function add the script that will load the wasm module:
+
+```tsx
+useEffect(() => {
+  async function loadWasm() {
+    if (typeof window !== "undefined") {
+      await WebAssembly.init();
+    }
+  }
+  loadWasm();
+}, []);
+```
+
+Then add the handler we call when the user clicks "Get result":
+
+```tsx
+const handleFibonacciCalculation = (value: number) => {
+  if (WebAssembly.fibonacci) {
+    const computedResult = WebAssembly.fibonacci(value);
+    setResult(computedResult);
+  } else {
+    console.error("WASM module is not initialized.");
+  }
+};
+```
+
+The full setup should look like this:
+
+```tsx
+"use client";
+import { useEffect, useState } from "react";
+import type { InitInput, InitOutput } from "@/app/pkg/fibonacci";
+import init from "@/app/pkg/fibonacci";
+
+const WebAssembly = {
+  fibonacci: null as ((n: number) => number) | null,
+  init: async (input?: InitInput): Promise<void> => {
+    const wasm: InitOutput = await init(input);
+    WebAssembly.fibonacci = wasm.fibonacci;
+  },
+};
+export default function Fibonacci() {
+  const [result, setResult] = useState<number | null>(null);
+  const [fibonacciInput, setFibonacciInput] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadWasm() {
+      if (typeof window !== "undefined") {
+        await WebAssembly.init();
+      }
+    }
+    loadWasm();
+  }, []);
+
+  const handleFibonacciCalculation = (value: number) => {
+    if (WebAssembly.fibonacci) {
+      const computedResult = WebAssembly.fibonacci(value);
+      setResult(computedResult);
+    } else {
+      console.error("WASM module is not initialized.");
+    }
+  };
+  return (
+    <div>
+      <h2 className="text-sm/6 font-medium text-gray-400">
+        Calculate a fibonacci number
+      </h2>
+      <div className="grid sm:grid-cols-2 sm:gap-x-6 gap-y-4 sm:gap-y-0">
+        <input
+          type="number"
+          onChange={(e) => setFibonacciInput(parseInt(e.currentTarget.value))}
+          className="w-full px-4 py-2 bg-indigo-100 focus:bg-indigo-50 text-indigo-950 border rounded-md focus:ring-2 focus:ring-indigo-500"
+        />
+        <button
+          type="button"
+          className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 sm:w-1/2"
+          onClick={() =>
+            typeof fibonacciInput === "number"
+              ? handleFibonacciCalculation(fibonacciInput)
+              : null
+          }
+        >
+          Get result
+        </button>
+        <p className="mt-4">
+          <span className="text-4xl font-semibold tracking-tight text-white">
+            {typeof result === "number" ? result.toLocaleString() : null}
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+Now we're ready to actually use the `Fibonacci` component which
+calls a Rust function to calculate fibonacci numbers.
+
+## Use the `Fibonacci` component
+
+In your `src/app/page.tsx` file, add the component.
+
+```tsx
+import Fibonacci from "@/components/Fibonacci";
+...
+<ol>
+    ...
+    <li>Save and see your changes instantly.</li>
+</ol>
+<Fibonacci />
+...
+```
+
+I added mine right after the `ol` component - feel free to change this
+to whatever you like.
+
+Now fire up your dev server and start calculating some fibonacci numbers!
+
+Start with 42, that is large enough to not be instantaneous.
+
+### P.S. Why not use a faster Fibonacci algorith?
+
+Great question. Obviously we can all implement the matrix exponentiation version in our heads
+so why rock the slow and memory-hungry recursive version?
+
+Simple. I intentionally want to experience the speed of the Rust algorithm!
+
+### P.P.S. The code
+
+Check out the [corresponding Github repo](https://github.com/thinkjrs/nextjs-wasm) that has this code in it. It's MIT, so feel free to use at-will and contribute, if that's how you roll.
+
+<BlogNewsletterForm />
