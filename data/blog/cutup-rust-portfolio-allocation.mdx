@@ -1,0 +1,85 @@
+---
+title: "Cutup: A Rust Library for Portfolio Allocation"
+date: 2025-02-09
+summary: "Announcing the release of Cutup, a Rust crate for portfolio allocation using MVO, HRP, and EW. Part of my upcoming book, soon to be a web app running directly in the browser."
+tags: ['Rust', 'Rust tools', 'Dev tools', 'Development', 'Developer tooling']
+draft: false
+images: ['/static/images/cutup-rust-portfolio-allocation.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/cutup-rust-portfolio-allocation.webp"
+  alt="A long-standing iron system rusted over but still strong."
+  height={900}
+  width={1200}
+/>
+
+Rust has a way of pulling you in. The type system, the performance, the way everything just *clicks* when you get past the borrow checker. And yet, when it comes to quantitative finance, Python and R still dominate. That’s fine—but I wanted something built for **speed, efficiency, and the web**. 
+
+This isn’t just about a Rust library. **Cutup** is part of my upcoming book, where readers will build real-world portfolio allocation tools that run **directly in the browser** using WebAssembly. We’re taking financial computing beyond Python scripts and bringing it into the future—blazing fast, memory-safe, and ready for production.
+
+So, I built **Cutup**, a Rust library that brings robust portfolio allocation strategies—Mean-Variance Optimization (MVO), Hierarchical Risk Parity (HRP), and Equal Weight (EW)—into a fast, type-safe, and production-ready environment. This is just the beginning. In my book, I dive into building real-world Rust applications. But we’re not stopping there—we turn this into a web app that runs **directly in the browser**.
+
+Yes. Investment-bank grade portfolio allocation in grandma's browser.
+
+## Why Build This?
+
+If you’ve spent time in portfolio allocation, you know the drill. NumPy, SciPy, Pandas—great tools, but they bring along Python’s *interpretive overhead*. I wanted something that could:
+
+- Run **fast**, with compile-time guarantees.
+- Handle **large datasets** without choking.
+- Provide **memory safety** without the footguns.
+- Work **directly in the browser** with WebAssembly.
+
+Rust was the obvious choice. It's also the future.
+
+## What Cutup Does
+
+Cutup is simple but powerful. It takes historical price data, computes returns, and lets you allocate weights using three different methods:
+
+- **MVO (Mean-Variance Optimization)** – The classic Markowitz model, but with Rust’s performance.
+- **HRP (Hierarchical Risk Parity)** – A clustering-based approach that avoids inverting covariance matrices.
+- **EW (Equal Weighting)** – Sometimes, simplicity wins.
+
+Here’s how easy it is to use:
+
+```rust
+use nalgebra::DMatrix;
+use cutup::run_portfolio_allocation;
+
+fn main() {
+    let prices = DMatrix::from_row_slice(
+        4,
+        4,
+        &[
+            125.0, 1500.0, 210.0, 600.0,
+            123.0, 1520.0, 215.0, 620.0,
+            130.0, 1510.0, 220.0, 610.0,
+            128.0, 1530.0, 225.0, 630.0,
+        ],
+    );
+
+    let weights = run_portfolio_allocation(prices);
+    println!("Portfolio Weights: {:?}", weights);
+}
+```
+
+## What’s Next?
+
+Cutup is at **v0.1.1**, but there’s more coming. Factor models, Black-Litterman, maybe even real-time allocation over streaming data. The next step? **Bringing this to the browser** with WebAssembly so you can run portfolio optimizations without leaving your web app.
+
+If you’re working in Rust and finance, check it out.
+
+Install with:
+```sh
+cargo add cutup
+```
+
+Docs are live on [docs.rs/cutup](https://docs.rs/cutup), and if you find something broken (or just want to discuss portfolio theory in Rust), hit me up on GitHub.
+
+**Rust is the future of financial computing.** Might as well start building for it now!
+
+<BlogNewsletterForm />
