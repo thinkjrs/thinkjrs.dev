@@ -1,6 +1,6 @@
 ---
 title: How To Get Latitude and Longitude in Google Sheets
-date: 2025-07-17
+date: 2025-07-16
 summary: Discover how to easily get latitude and longitude for addresses in Google Sheets using custom functions. Leverage Google's built-in Maps Geocoding service to avoid complex APIs and quickly pinpoint locations for your campaigns.
 tags: ['Google Sheets', 'Google Workspace', 'Apps Script', 'Business', 'Google Maps']
 draft: false
@@ -89,7 +89,6 @@ Let’s take a look at a rough type this service returns.
 ### Geocoder in TypeScript
 
 ```ts
-
 /**
  * The latitude/longitude coordinates.
  */
@@ -113,7 +112,7 @@ interface Geometry {
   location: LatLng;
   location_type: 'ROOFTOP' | 'RANGE_INTERPOLATED' | 'GEOMETRIC_CENTER' | 'APPROXIMATE';
   viewport: Bounds;
-  bounds?: Bounds; 
+  bounds?: Bounds;
 }
 
 /**
@@ -141,7 +140,7 @@ interface GeocodeResult {
  */
 export interface GeocodeResponse {
   status: 'OK' | 'ZERO_RESULTS' | 'OVER_QUERY_LIMIT' | 'REQUEST_DENIED' | 'INVALID_REQUEST' | 'UNKNOWN_ERROR';
-  results: GeocodeResult[];
+  results: GeocodeResult | GeocodeResult[]; // Updated based on observed Apps Script behavior
 }
 ```
 
