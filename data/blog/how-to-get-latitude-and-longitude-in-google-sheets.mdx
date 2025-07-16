@@ -1,0 +1,176 @@
+---
+title: How To Get Latitude and Longitude in Google Sheets
+date: 2025-07-17
+summary: Discover how to easily get latitude and longitude for addresses in Google Sheets using custom functions. Leverage Google's built-in Maps Geocoding service to avoid complex APIs and quickly pinpoint locations for your campaigns.
+tags: ['Google Sheets', 'Google Workspace', 'Apps Script', 'Business', 'Google Maps']
+draft: false
+images: ['/static/images/how-to-get-latitude-and-longitude-in-google-sheets.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/how-to-get-latitude-and-longitude-in-google-sheets.webp"
+  alt="A rendering of google sheets with a green location marker prominently placed on a cell."
+  height={1080}
+  width={2000}
+/>
+
+Today [b00st.com](https://b00st.com?utm_source=thinkjrs.dev)'s trusty CEO needed to get the latitude and longitude of more than 1000 addresses for a campaign’s ad buy. When he hit me on Slack about the situation, saying he’d try out the Google Maps API, I immediately stopped him, fully knowing that geo location APIs aren’t for the uninitiated (lots of edge cases). Fortunately, Google actually builds their maps product right into your workspace apps, like Google Sheets.
+
+Let’s look at a quick and dirty way to give yourself two new functions inside Google Sheets, `GETLATITUDE` and `GETLONGITUDE`. 
+
+## Rocking apps scripts inside Google Sheets
+
+First open your sheet and make a table with the column headers `Address`, `Latitude`, and `Longitude`. Then add an address (you don’t have to be super specific here\!), such as the address of the White House in Washington D.C.
+
+Now click on `Extensions` in the menu bar and select `Apps Script` \- you’ll see another tab open where you have a boilerplate JavaScript function. This is where we’ll copy pasta some code to give you those new latitude and longitude functions inside Google Sheets
+
+## Copy pasta some code 
+
+Now inside the code block select everything and paste in the following: 
+
+```javascript
+/**
+* Returns the latitude of a given address.
+*
+* @param {string} address The address to geocode.
+* @return The latitude.
+* @customfunction
+*/
+function GETLATITUDE(address) {
+ if (address === "") {
+   return "";
+ }
+ var geocoder = Maps.newGeocoder();
+ // Geocode the address and check for a valid response.
+ var response = geocoder.geocode(address);
+ if (response.status !== 'OK') {
+   return "Error: " + response.status;
+ }
+ return response.results[0].geometry.location.lat;
+}
+
+/**
+* Returns the longitude of a given address.
+*
+* @param {string} address The address to geocode.
+* @return The longitude.
+* @customfunction
+*/
+function GETLONGITUDE(address) {
+ if (address === "") {
+   return "";
+ }
+ var geocoder = Maps.newGeocoder();
+ // Geocode the address and check for a valid response.
+ var response = geocoder.geocode(address);
+ if (response.status !== 'OK') {
+   return "Error: " + response.status;
+ }
+ return response.results[0].geometry.location.lng;
+}
+
+```
+
+Now click the “Save” button. Go back to your Google Sheet. 
+
+## Use the formulas 
+
+Now in your Google Sheet you can select the cell directly below the `Latitude` column, press equals, and type `lat` and you should see your new function. Select it and add your text `Address` value as its input. Do the same for `Longitude`. Voila, you have the latitude and longitude of the address\!
+
+## What’s going on under the hood? 
+
+Inside our Apps Script function we are leveraging Google’s robust built-in Maps product, specifically the geolocation service `Geocoder`. This lets us grab a human-readable address and output a machine-usable coordinate or other structured data.
+
+Let’s take a look at a rough type this service returns. 
+
+### Geocoder in TypeScript
+
+```ts
+
+/**
+ * The latitude/longitude coordinates.
+ */
+interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+/**
+ * A bounding box defined by two LatLng coordinates.
+ */
+interface Bounds {
+  northeast: LatLng;
+  southwest: LatLng;
+}
+
+/**
+ * The geometry information for a geocoding result.
+ */
+interface Geometry {
+  location: LatLng;
+  location_type: 'ROOFTOP' | 'RANGE_INTERPOLATED' | 'GEOMETRIC_CENTER' | 'APPROXIMATE';
+  viewport: Bounds;
+  bounds?: Bounds; 
+}
+
+/**
+ * A component of a formatted address.
+ */
+interface AddressComponent {
+  long_name: string;
+  short_name: string;
+  types: string[];
+}
+
+/**
+ * A single result from a geocoding request.
+ */
+interface GeocodeResult {
+  address_components: AddressComponent[];
+  formatted_address: string;
+  geometry: Geometry;
+  place_id: string;
+  types: string[];
+}
+
+/**
+ * The top-level response from the Geocoding service.
+ */
+export interface GeocodeResponse {
+  status: 'OK' | 'ZERO_RESULTS' | 'OVER_QUERY_LIMIT' | 'REQUEST_DENIED' | 'INVALID_REQUEST' | 'UNKNOWN_ERROR';
+  results: GeocodeResult[];
+}
+```
+
+Pretty cool, right? Note that this is the Maps API under the hood so you have the same daily limits etc. as using that API directly.
+
+### Google Maps API limits (as of 2025-07-16)
+
+Here’s the breakdown of their pricing as of July 2025\. They have both a rate limiter and a pay-as-you-go setup:
+
+- 3,000 Queries Per Minute (QPM)  
+- 40,000 Requests Per Month (RPM) ($200 free usage)  
+  - **$5.00 per 1,000 requests** for usage above the free tier
+
+If you know you’re going to be hitting the API a bunch, you can reach out and get a volume discount\!
+
+## Video screenshare
+
+Here’s a quick and dirty screenshare of me rocking the Apps Script setup inside Google Sheets and then using it to pinpoint President Trump’s location when he’s not golfing.
+
+<div className="overflow-hidden rounded-md shadow-lg">
+  <video
+    className="h-auto w-full rounded-md"
+   controls
+    poster="https://res.cloudinary.com/thinkjrs-dev/video/upload/v1752681199/how-to-get-latitude-and-longitude-in-google-sheets_dl2ssw_t4wryv.webp"
+  >
+    <source src="https://res.cloudinary.com/thinkjrs-dev/video/upload/v1752681417/how-to-get-latitude-and-longitude-in-google-sheets_dl2ssw_t4wryv_sdej25.mp4" type="video/mp4"/>
+    Your browser does not support the video tag.
+  </video>
+</div>
+
+<BlogNewsletterForm />
+
