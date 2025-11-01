@@ -1,0 +1,210 @@
+---
+title: Blazing Fast Monte Carlo Sims - Combining Rust and Next.js on Vercel
+date: '2025-11-01'
+tags: ['Rust', 'Next.js', 'WebAssembly', 'Vercel', 'Serverless']
+draft: false
+summary: 'Using Vercel functions to run high-performance Monte Carlo simulations in Rust, integrated with a Next.js frontend for real-time visualization.'
+images: ['/static/images/combining-rust-and-nextjs-with-vercel-functions.webp']
+authors: ['default']
+layout: PostLayout
+---
+
+<Image
+  className="rounded-md shadow-md"
+  src="/static/images/combining-rust-and-nextjs-with-vercel-functions.webp"
+  alt="A futuristic planet with a rocket flying overhead. A slightly fish-eye lens with orange and teal color grading on a rocky martian-like ground."
+  height={800}
+  width={1200}
+/>
+
+I've always been fascinated by the intersection of finance and technology. One of the cornerstones of quantitative finance is the [Monte Carlo simulation](https://en.wikipedia.org/wiki/Monte_Carlo_method), a powerful method for modeling the probability of different outcomes. However, these simulations can be computationally expensive. This got me thinking: could I build a web application that runs complex financial simulations on-demand, without the overhead of a dedicated server, and still be incredibly fast?
+
+The answer, it turns out, is a resounding yes. By combining the raw performance of Rust with the slick user experience of Next.js and the power of Vercel's serverless platform, I created a demo that does just that.
+
+In this post, I'll walk you through how I built it. You can check out the final code in the [GitHub repository](https://github.com/thinkjrs/vercel-rust-runtime).
+
+### The goal - high-performance, serverless compute
+
+The core idea was to create a web app with the following features:
+
+1.  A backend capable of running thousands of Monte Carlo simulation steps for asset pricing.
+2.  A frontend that allows users to tweak simulation parameters and visualize the results in real-time.
+3.  The entire stack needed to be serverless, deploying seamlessly on a platform like Vercel. We really don't want to be fucking around with servers here.
+
+This immediately presented a challenge. Serverless functions, while amazing for scalability, can sometimes be a bottleneck for CPU-intensive tasks. A language like Node.js might struggle or become too slow. This is where Rust comes in. Known for its performance, memory safety, and low-level control, Rust is a perfect candidate for the heavy lifting.
+
+You know I love me some Rust.
+
+### The architecture - a hybrid approach
+
+The project is split into two main parts:
+
+1.  **The Rust Backend:** A Vercel Serverless Function written in Rust that exposes a single API endpoint. This endpoint accepts simulation parameters, runs the Monte Carlo logic, and returns the results.
+2.  **The Next.js Frontend:** A standard Next.js application that provides the user interface, including sliders for adjusting parameters and a chart for visualizing the data returned by the Rust backend.
+
+Vercel is the glue that holds it all together. It has native support for Rust functions, allowing you to deploy a Rust binary as an API endpoint right alongside your Next.js app.
+
+### The backend - Rust for raw speed
+
+The heart of the application is the Rust API endpoint. The setup was surprisingly straightforward (after a surprisingly lengthy _figuring-it-out period_).
+
+First, I defined the project structure in `Cargo.toml` to specify my dependencies and, crucially, to declare the API handler as a binary.
+
+```toml
+# Cargo.toml
+[package]
+name = "tsmc-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+rand = "0.8.5"
+rand_distr = "0.4.3"
+reqwest = "0.12.4"
+serde_json = { version= "1.0.117", features=["raw_value"] }
+tokio = { version= "1.37.0", features=["macros"] }
+vercel_runtime = "1.1.3"
+
+# Each handler has to be specified as [[bin]]
+[[bin]]
+name = "test"
+path = "api/test.rs"
+```
+
+If you're a Rust dev you already know that the `[[bin]]` section tells Cargo to compile `api/test.rs` into an executable named `test`. What's awesome is that Vercel automatically picks up any files in the `/api` directory and treats them as serverless functions. Because this one is Rust, it uses the Vercel Rust runtime to build and serve it.
+
+The handler itself, located at `api/test.rs`, uses the `vercel_runtime` crate. Its job is to parse incoming HTTP requests, run the simulation, and return a JSON response.
+
+```rust
+// api/test.rs
+use vercel_runtime::{run, Body, Error, Request, Response, StatusCode};
+use reqwest::Url;
+use serde_json::json;
+use std::collections::HashMap;
+use tsmc_rust;
+pub async fn handler(_req: Request) -> Result<Response<Body>, Error> {
+    let url = Url::parse(&_req.uri().to_string())?;
+
+    // read url query params
+    let query_params = url
+        .query_pairs()
+        .into_owned()
+        .collect::<HashMap<String, String>>();
+    let samples: usize = query_params
+        .get("samples")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(10);
+    let size: usize = query_params
+        .get("size")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
+    let starting_value: f32 = query_params
+        .get("starting_value")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(50.0);
+    let mu: f32 = query_params
+        .get("mu")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0.001);
+    let sigma: f32 = query_params
+        .get("sigma")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0.015);
+    let dt: f32 = query_params
+        .get("dt")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(1.0 / 252.0);
+
+    let mut results: Vec<Vec<f32>> = Vec::with_capacity(samples);
+    for _i in 1..samples {
+        let random_shocks: Vec<f32> = tsmc_rust::generate_number_series(size);
+
+        let mc = tsmc_rust::monte_carlo_series(starting_value, mu, sigma, dt, random_shocks);
+        results.push(mc);
+    }
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "application/json")
+        .body(
+            json!({ "message": "Rust is the best!", "results": results })
+                .to_string()
+                .into(),
+        )?)
+}
+```
+
+The handler parses query parameters like `samples`, `size`, and `mu` from the request URL. It then loops `samples` times, generating a new simulation path in each iteration using the core logic from the `tsmc_rust` library crate. The results are collected into a `Vec<Vec<f32>>` and serialized to JSON.
+
+The actual simulation logic is in `src/lib.rs`. For example, generating the random numbers (the "shocks") for the simulation uses the `rand` and `rand_distr` crates to sample from a standard normal distribution.
+
+```rust
+// src/lib.rs
+use rand;
+use rand_distr::{Distribution, Normal};
+pub fn generate_number_series(size: usize) -> Vec<f32> {
+    let normal = Normal::new(0.0, 1.0).unwrap(); // Standard normal distribution
+    let mut rng = rand::thread_rng();
+    (0..size).map(|_| normal.sample(&mut rng) as f32).collect()
+}
+```
+
+This separation keeps the core logic independent of the web handler, which is great for testing and reusability.
+
+### The frontend - Next.js and Chart.js for a sexy UI
+
+With the backend sorted, I needed a way to interact with it. I chose Next.js for its excellent developer experience and React for building a component-based UI.
+
+The main page, `app/page.tsx`, is where everything comes together. It manages the state for the simulation parameters (`mu`, `sigma`, etc.) using React's `useState` hook.
+
+```typescript
+// app/page.tsx
+// ... existing code
+export default function Home() {
+  const [data, setData] = useState<ChartData>({ results: undefined });
+  const [numSimulations, setNumSimulations] = useState(DEFAULT_NUM_SIMULATIONS);
+  const [numDays, setNumDays] = useState(DEFAULT_NUM_DAYS);
+  const [mu, setMu] = useState(DEFAULT_MU);
+  const [sigma, setSigma] = useState(DEFAULT_SIGMA);
+  const [startingValue, setStartingValue] = useState(DEFAULT_STARTING_VALUE);
+  const [shouldRefresh, setShouldRefresh] = useState(true);
+// ... existing code
+```
+
+I built a reusable `<Slider />` component to give the user control over the inputs. When a slider's value changes, it updates the corresponding state variable.
+
+A `useEffect` hook watches for changes in these state variables. Whenever a parameter is adjusted, it constructs a new API URL and fetches the data from our Rust endpoint.
+
+```typescript
+// app/page.tsx
+// ... existing code
+useEffect(() => {
+  if (!shouldRefresh) {
+    const url = buildUrl(
+      `/api/test?samples=${numSimulations}&size=${numDays}&mu=${Number(mu) / 10000.0}&sigma=${
+        Number(sigma) / 10000.0
+      }&starting_value=${startingValue}`
+    )
+    getBackendData(url)
+      .then((data) => setData(data))
+      .catch((err) => console.error(err))
+  }
+}, [numSimulations, numDays, mu, sigma, startingValue, setData, shouldRefresh])
+// ... existing code
+```
+
+The fetched data is then passed to a `<LineChart />` component, which is a wrapper around `react-chartjs-2`, to render the beautiful visualizations of the simulated asset paths.
+
+### The result - insanely fast web computations!
+
+The most satisfying part of this project is seeing it in action. Adjusting the sliders triggers a new request to the Rust backend. Even with hundreds of simulations and time steps, the response is nearly instantaneous. The compiled Rust binary is incredibly efficient, and Vercel's infrastructure ensures low-latency execution.
+
+It's a powerful demonstration of how to escape the performance limitations of traditional serverless languages for compute-heavy tasks, without sacrificing the benefits of the serverless model.
+
+This project was a fantastic learning experience and a testament to the power of modern web development stacks. Combining Rust's performance with Next.js's frontend prowess on a platform like Vercel opens up a whole new world of possibilities for building sophisticated, high-performance web applications.
+
+Hasta luego, kiddos.
+
+<BlogNewsletterForm />
